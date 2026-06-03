@@ -1,0 +1,93 @@
+@import "tailwindcss";
+
+@theme {
+  --color-espresso: #0b0908;
+  --color-surface: #16110e;
+  --color-elevated: #211a15;
+  --color-cream: #f4ece0;
+  --color-taupe: #a1907e;
+  --color-muted: #6b5d50;
+  --color-amber: #e0913d;
+  --color-amberdeep: #c2722a;
+
+  --font-display: "Anton", "Arial Narrow", sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-espresso);
+  color: var(--color-cream);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-amber);
+  color: var(--color-espresso);
+}
+
+/* Layered warm glow over espresso — evokes a dark cafe without a photo */
+.hero-bg {
+  background:
+    radial-gradient(ellipse 70% 55% at 72% 18%, rgba(224, 145, 61, 0.16), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 18% 88%, rgba(194, 114, 42, 0.12), transparent 55%),
+    linear-gradient(180deg, #0b0908 0%, #16110e 55%, #0b0908 100%);
+}
+
+.panel-bg {
+  background:
+    radial-gradient(ellipse 90% 70% at 30% 25%, rgba(224, 145, 61, 0.14), transparent 62%),
+    linear-gradient(150deg, #211a15 0%, #16110e 70%, #0b0908 100%);
+}
+
+/* Subtle film grain so flat dark areas don't band */
+.grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.hairline {
+  border-color: rgba(107, 93, 80, 0.28);
+}
+
+/* Fluid monumental display sizes (clamp commas break Tailwind arbitrary values) */
+.t-hero {
+  font-size: clamp(6rem, 31vw, 30rem);
+  line-height: 0.78;
+  letter-spacing: -0.02em;
+}
+.t-xl {
+  font-size: clamp(3rem, 13vw, 12rem);
+  line-height: 0.88;
+  letter-spacing: -0.015em;
+}
+.t-lg {
+  font-size: clamp(2.75rem, 9vw, 8rem);
+  line-height: 0.9;
+  letter-spacing: -0.01em;
+}
+.t-md {
+  font-size: clamp(2.25rem, 6.5vw, 5.5rem);
+  line-height: 0.9;
+  letter-spacing: -0.01em;
+}
