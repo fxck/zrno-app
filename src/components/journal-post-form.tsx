@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Link, useRouter } from '@tanstack/react-router'
 import { savePost, type Post } from '../lib/server/blog'
+import { uploadImageFile, ACCEPT_IMAGE } from '../lib/upload-client'
 import { Button } from './ui/button'
 import { Input, Label } from './ui/input'
 
@@ -41,6 +42,26 @@ export default function JournalPostForm({ post }: Props) {
   const [busy, setBusy] = useState<null | 'draft' | 'publish'>(null)
   const [error, setError] = useState('')
   const [savedAt, setSavedAt] = useState<string>('')
+
+  // Cover image upload → object storage.
+  const coverInputRef = useRef<HTMLInputElement>(null)
+  const [coverBusy, setCoverBusy] = useState(false)
+  const [coverErr, setCoverErr] = useState('')
+
+  async function onCoverFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = '' // let the same file be re-picked later
+    if (!file) return
+    setCoverErr('')
+    setCoverBusy(true)
+    try {
+      setCover(await uploadImageFile(file, 'cover'))
+    } catch (err: any) {
+      setCoverErr(err.message || 'Upload failed.')
+    } finally {
+      setCoverBusy(false)
+    }
+  }
 
   // Auto-suggest slug from title until the user edits the slug by hand.
   const slugTouched = useRef(Boolean(post?.slug))
@@ -148,13 +169,41 @@ export default function JournalPostForm({ post }: Props) {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="cover">Cover image URL</Label>
+              <Label htmlFor="cover">Cover image</Label>
+              <input
+                ref={coverInputRef}
+                type="file"
+                accept={ACCEPT_IMAGE}
+                className="hidden"
+                onChange={onCoverFile}
+              />
+              <div className="flex items-center gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={coverBusy}
+                  onClick={() => coverInputRef.current?.click()}
+                >
+                  {coverBusy ? 'Uploading…' : cover ? 'Replace' : 'Upload image'}
+                </Button>
+                {cover && !coverBusy && (
+                  <button
+                    type="button"
+                    onClick={() => setCover('')}
+                    className="font-mono text-[11px] tracking-[0.12em] text-muted hover:text-cream transition-colors"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
               <Input
                 id="cover"
                 value={cover}
                 onChange={(e) => setCover(e.target.value)}
-                placeholder="https://…"
+                placeholder="…or paste an image URL"
               />
+              {coverErr && <p className="text-red-400 text-xs">{coverErr}</p>}
             </div>
           </div>
 
@@ -172,10 +221,11 @@ export default function JournalPostForm({ post }: Props) {
 
           {cover.trim() && (
             <img
+              key={cover}
               src={cover}
-              alt=""
+              alt="Cover preview"
               className="w-full h-auto border border-muted/20"
-              onError={(e) => ((e.currentTarget.style.display = 'none'))}
+              onError={(e) => (e.currentTarget.style.display = 'none')}
             />
           )}
         </div>

@@ -19,6 +19,12 @@ zerops:
         SMTP_PORT: "1025"
         EMAIL_FROM: ZRNO Coffee <hello@zrno.cz>
         EMAIL_PROVIDER: smtp
+        # Object storage (S3-compatible MinIO) for journal image uploads.
+        S3_ENDPOINT: ${storage_apiUrl}
+        S3_BUCKET: ${storage_bucketName}
+        S3_REGION: us-east-1
+        S3_ACCESS_KEY_ID: ${storage_accessKeyId}
+        S3_SECRET_ACCESS_KEY: ${storage_secretAccessKey}
 
   # Production build (appstage): cross-deployed from appdev. Vite + Nitro
   # produce a self-contained Node server at .output/server/index.mjs.
@@ -43,4 +49,10 @@ zerops:
         SMTP_PORT: "1025"
         EMAIL_FROM: ZRNO Coffee <hello@zrno.cz>
         EMAIL_PROVIDER: smtp
+        # Object storage (S3-compatible MinIO) for journal image uploads.
+        S3_ENDPOINT: ${storage_apiUrl}
+        S3_BUCKET: ${storage_bucketName}
+        S3_REGION: us-east-1
+        S3_ACCESS_KEY_ID: ${storage_accessKeyId}
+        S3_SECRET_ACCESS_KEY: ${storage_secretAccessKey}
       start: node .output/server/index.mjs

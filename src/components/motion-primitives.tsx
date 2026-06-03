@@ -25,18 +25,28 @@ import {
  * ------------------------------------------------------------------ */
 
 // Custom cubic-beziers (authored, not the framework defaults).
-export const EASE_OUT = [0.16, 1, 0.3, 1] as const // expo-out: arrives slow & sure
+//
+// The whole site moves on ONE gentle curve. We deliberately avoid expo-out
+// ([0.16,1,0.3,1]) — it launches at ~6× velocity then slams to a hard stop,
+// which reads as snappy/aggressive. easeOutCubic starts ~2.8× and has a long,
+// even deceleration: motion that begins softly and *settles* rather than
+// arrives. That's the "béchamel" feel — slow, smooth, no jolt, no bounce.
+export const EASE_OUT = [0.215, 0.61, 0.355, 1] as const // easeOutCubic — gentle settle
 export const EASE_IN_OUT = [0.65, 0, 0.35, 1] as const // symmetric, for parallax mapping
-export const EASE_SOFT = [0.25, 1, 0.5, 1] as const // gentle settle
+export const EASE_SOFT = [0.33, 0, 0.2, 1] as const // eases in *and* out — the calmest of all
 
-export const REVEAL_DURATION = 0.8
-export const REVEAL_STAGGER = 0.09
+export const REVEAL_DURATION = 0.85
+export const REVEAL_STAGGER = 0.1
 
-// Spring tuned for low bounce — used by magnetic CTA & scroll progress.
-export const SOFT_SPRING = { stiffness: 140, damping: 26, mass: 0.9 } as const
+// Springs tuned to be OVERDAMPED (ζ > 1) — they glide to rest and never
+// overshoot. ζ = damping / (2·√(stiffness·mass)); both below are ~1.3.
+// Used by the magnetic CTA & scroll progress where a spring's velocity
+// tracking is nice, but bounce would betray the calm.
+export const SOFT_SPRING = { stiffness: 90, damping: 25, mass: 1 } as const
+export const GLIDE_SPRING = { stiffness: 120, damping: 30, mass: 0.9 } as const
 
 // One viewport config so every scroll reveal fires once, slightly early.
-const VIEWPORT = { once: true, amount: 0.35, margin: '0px 0px -8% 0px' } as const
+const VIEWPORT = { once: true, amount: 0.3, margin: '0px 0px -10% 0px' } as const
 
 /* ------------------------------------------------------------------ *
  * Reveal — fade + rise as it enters the viewport.
@@ -59,7 +69,7 @@ export function Reveal<T extends ElementType = 'div'>({
   as,
   children,
   delay = 0,
-  y = 26,
+  y = 16,
   stagger = false,
   staggerAmount = REVEAL_STAGGER,
   ...rest
@@ -128,8 +138,8 @@ export function MaskedLines({
   lines,
   className,
   delay = 0,
-  stagger = 0.12,
-  duration = 0.9,
+  stagger = 0.11,
+  duration = 1,
   /** reveal on scroll-in (default) or immediately on mount (hero) */
   trigger = 'inView',
 }: {
@@ -179,7 +189,7 @@ export function MaskedLines({
           <motion.span
             style={{ display: 'block', willChange: 'transform' }}
             variants={{
-              hidden: { y: '115%' },
+              hidden: { y: '108%' },
               show: { y: '0%', transition: { duration, ease: EASE_OUT } },
             }}
           >
@@ -219,8 +229,8 @@ export function usePointerFine(): boolean {
 export function MagneticButton({
   children,
   className,
-  strength = 0.32,
-  radius = 90,
+  strength = 0.16,
+  radius = 80,
 }: {
   children: ReactNode
   className?: string
@@ -260,8 +270,8 @@ export function MagneticButton({
       onMouseLeave={reset}
       style={{ x, y, display: 'inline-block', willChange: 'transform' }}
       className={className}
-      whileHover={enabled ? { scale: 1.03 } : undefined}
-      whileTap={enabled ? { scale: 0.97 } : undefined}
+      whileHover={enabled ? { scale: 1.02 } : undefined}
+      whileTap={enabled ? { scale: 0.985 } : undefined}
       transition={{ type: 'spring', ...SOFT_SPRING }}
     >
       {children}
@@ -275,14 +285,14 @@ export function MagneticButton({
 export function ScrollProgress() {
   const reduce = useReducedMotion()
   const { scrollYProgress } = useScroll()
-  const scaleX = useSpring(scrollYProgress, { stiffness: 120, damping: 30, mass: 0.6 })
+  const scaleX = useSpring(scrollYProgress, GLIDE_SPRING)
 
   if (reduce) return null
 
   return (
     <motion.div
       aria-hidden
-      className="fixed top-0 left-0 right-0 z-[60] h-[2px] origin-left bg-amber"
+      className="fixed top-0 left-0 right-0 z-[60] h-[2px] origin-left bg-amber/80"
       style={{ scaleX }}
     />
   )
@@ -355,9 +365,11 @@ export function Marquee({
 }
 
 /* ------------------------------------------------------------------ *
- * AnimatedPrice — counts a number up to its value when scrolled into
- * view. Used for menu prices. Renders the final number on the server
- * and for reduced-motion, so content is always correct/SSR-stable.
+ * Price — renders the price, statically.
+ *
+ * (Was an animated count-up-from-zero. Removed: numbers ticking up on a
+ * coffee menu read as a flashy widget, not a confident editorial price
+ * list. The value is just shown — calm, instant, correct on first paint.)
  * ------------------------------------------------------------------ */
 export function AnimatedPrice({
   value,
@@ -368,47 +380,9 @@ export function AnimatedPrice({
   suffix?: string
   className?: string
 }) {
-  const reduce = useReducedMotion()
-  const ref = useRef<HTMLSpanElement>(null)
-  const [display, setDisplay] = useState(value)
-  const [started, setStarted] = useState(false)
-
-  useEffect(() => {
-    if (reduce || typeof window === 'undefined') return
-    const node = ref.current
-    if (!node) return
-    // Pre-set to 0 only on the client just before animating, so SSR markup
-    // and first paint show the real value (no hydration flash of 0).
-    const io = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting && !started) {
-          setStarted(true)
-          io.disconnect()
-          const from = 0
-          const to = value
-          const duration = 900
-          const start = performance.now()
-          setDisplay(from)
-          const tick = (now: number) => {
-            const t = Math.min(1, (now - start) / duration)
-            // expo-out feel
-            const eased = 1 - Math.pow(1 - t, 3)
-            setDisplay(Math.round(from + (to - from) * eased))
-            if (t < 1) requestAnimationFrame(tick)
-            else setDisplay(to)
-          }
-          requestAnimationFrame(tick)
-        }
-      },
-      { threshold: 0.6 },
-    )
-    io.observe(node)
-    return () => io.disconnect()
-  }, [reduce, value, started])
-
   return (
-    <span ref={ref} className={className}>
-      {display}
+    <span className={className}>
+      {value}
       {suffix}
     </span>
   )

@@ -8,14 +8,17 @@ import {
   useTransform,
 } from 'motion/react'
 import { MENU } from '../lib/menu'
+import { useCart } from '../lib/cart'
+import { FloatingCart } from '../components/floating-cart'
+import { MenuAddControl } from '../components/menu-add-control'
 import {
-  AnimatedPrice,
   EASE_OUT,
   MagneticButton,
   Marquee,
   MaskedLines,
   Reveal,
   ScrollProgress,
+  SOFT_SPRING,
   UnderlineLink,
   useParallaxY,
   usePointerFine,
@@ -53,6 +56,7 @@ function Home() {
   const reduce = useReducedMotion()
   const fine = usePointerFine()
   const scrolled = useScrolled(28)
+  const cart = useCart()
 
   // Hero parallax: photo drifts up + slowly scales as the hero scrolls away.
   const heroRef = useRef<HTMLElement>(null)
@@ -60,10 +64,11 @@ function Home() {
     target: heroRef,
     offset: ['start start', 'end start'],
   })
-  const heroBgY = useTransform(heroProgress, [0, 1], ['0%', '24%'])
-  const heroBgScale = useTransform(heroProgress, [0, 1], [1.06, 1.16])
-  const heroContentY = useTransform(heroProgress, [0, 1], ['0%', '14%'])
-  const heroFade = useTransform(heroProgress, [0, 0.85], [1, 0])
+  // Gentle single-axis drift only — no scroll-driven zoom (translate + scale
+  // at once reads heavy). A fixed slight scale just hides the drift's edge gap.
+  const heroBgY = useTransform(heroProgress, [0, 1], ['0%', '15%'])
+  const heroContentY = useTransform(heroProgress, [0, 1], ['0%', '9%'])
+  const heroFade = useTransform(heroProgress, [0, 0.9], [1, 0])
 
   // Photo-panel parallax (story + visit).
   const roastRef = useRef<HTMLDivElement>(null)
@@ -95,6 +100,7 @@ function Home() {
   return (
     <div className="font-body bg-espresso text-cream">
       <ScrollProgress />
+      <FloatingCart />
 
       {/* NAV — condenses + intensifies its backdrop on scroll */}
       <motion.header
@@ -105,21 +111,15 @@ function Home() {
           paddingBottom: scrolled ? 12 : 20,
           backgroundColor: scrolled ? 'rgba(11,9,8,0.92)' : 'rgba(11,9,8,0.80)',
         }}
-        transition={{ duration: 0.4, ease: EASE_OUT }}
+        transition={{ duration: 0.55, ease: EASE_OUT }}
         style={{
           backdropFilter: scrolled ? 'blur(14px)' : 'blur(8px)',
           WebkitBackdropFilter: scrolled ? 'blur(14px)' : 'blur(8px)',
         }}
       >
-        <motion.a
-          href="#top"
-          className="font-display text-2xl tracking-wider"
-          animate={{ scale: scrolled ? 0.92 : 1 }}
-          transition={{ duration: 0.4, ease: EASE_OUT }}
-          style={{ transformOrigin: 'left center' }}
-        >
+        <a href="#top" className="font-display text-2xl tracking-wider">
           ZRNO
-        </motion.a>
+        </a>
         <nav className="hidden md:flex gap-9 font-mono text-[11px] tracking-[0.18em] text-taupe">
           {NAV.map(([label, href], i) => (
             <UnderlineLink key={i} href={href}>
@@ -130,7 +130,7 @@ function Home() {
         <MagneticButton strength={0.28} radius={80}>
           <Link
             to="/order"
-            className="zrno-cta inline-block bg-amber text-espresso font-mono text-[11px] tracking-[0.18em] px-5 py-3 hover:bg-amberdeep transition-[background-color,letter-spacing] duration-300 hover:tracking-[0.24em]"
+            className="zrno-cta inline-block bg-amber text-espresso font-mono text-[11px] tracking-[0.18em] px-5 py-3 hover:bg-amberdeep transition-colors duration-300"
           >
             ORDER ONLINE
           </Link>
@@ -150,7 +150,7 @@ function Home() {
           style={{
             backgroundImage: 'url(/hero.jpg)',
             y: reduce ? 0 : heroBgY,
-            scale: reduce ? 1.06 : heroBgScale,
+            scale: 1.08,
             willChange: 'transform',
           }}
         />
@@ -203,9 +203,9 @@ function Home() {
         <Reveal as="div" className="flex items-center gap-3 font-mono text-xs tracking-[0.2em] text-taupe">
           <motion.span
             className="text-amber text-base leading-none"
-            animate={reduce ? {} : { opacity: [1, 0.35, 1] }}
+            animate={reduce ? {} : { opacity: [0.55, 1, 0.55] }}
             transition={
-              reduce ? undefined : { duration: 2.8, repeat: Infinity, ease: 'easeInOut' }
+              reduce ? undefined : { duration: 5, repeat: Infinity, ease: 'easeInOut' }
             }
           >
             ●
@@ -233,7 +233,7 @@ function Home() {
             <h2 className="font-display t-lg mt-4">THE MENU</h2>
           </div>
           <div className="font-mono text-xs tracking-wide text-taupe">
-            PRICES IN Kč · TAP TO ORDER
+            PRICES IN Kč · ADD TO YOUR ORDER
           </div>
         </Reveal>
 
@@ -242,42 +242,27 @@ function Home() {
             <motion.div
               key={it.id}
               className="border-t hairline"
-              initial={reduce ? false : { opacity: 0, y: 24 }}
+              initial={reduce ? false : { opacity: 0, y: 14 }}
               whileInView={reduce ? {} : { opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.6 }}
-              transition={{ duration: 0.6, ease: EASE_OUT, delay: Math.min(i * 0.05, 0.3) }}
+              viewport={{ once: true, amount: 0.4 }}
+              transition={{ duration: 0.7, ease: EASE_OUT, delay: Math.min(i * 0.06, 0.3) }}
             >
-              <Link
-                to="/order"
-                search={{ add: it.id }}
-                aria-label={`Add ${it.name} to your order`}
-                className="menu-row group flex items-end justify-between gap-6 py-6 md:py-7 cursor-pointer"
-              >
-                <div className="flex items-end gap-5 flex-wrap">
-                  <span className="relative font-display menu-name text-3xl md:text-5xl leading-none">
-                    {/* amber underline marker wipes in on hover (desktop) */}
-                    <span
-                      aria-hidden
-                      className="menu-marker absolute -bottom-1 left-0 right-0 h-[2px] bg-amber"
-                    />
+              <div className="flex items-center justify-between gap-5 py-6 md:py-7">
+                <div className="flex items-end gap-5 flex-wrap min-w-0">
+                  <span className="font-display text-3xl md:text-5xl leading-none text-cream">
                     {it.name.toUpperCase()}
                   </span>
-                  <span className="text-sm text-taupe mb-1 max-w-xs">
+                  <span className="hidden sm:block text-sm text-taupe mb-1 max-w-xs">
                     {it.desc}
                   </span>
                 </div>
-                <div className="flex items-end gap-4 shrink-0">
-                  <span className="hidden md:inline-flex items-center gap-1 font-mono text-[10px] tracking-[0.2em] text-amber opacity-0 -translate-x-2 transition-all duration-300 ease-out group-hover:opacity-100 group-hover:translate-x-0">
-                    ADD
-                    <span className="inline-block transition-transform duration-300 group-hover:translate-x-1">
-                      →
-                    </span>
+                <div className="flex items-center gap-4 md:gap-7 shrink-0">
+                  <span className="font-display text-2xl md:text-4xl text-amber leading-none whitespace-nowrap tabular-nums">
+                    {it.price}
                   </span>
-                  <span className="menu-price font-display text-2xl md:text-4xl text-amber leading-none whitespace-nowrap">
-                    <AnimatedPrice value={it.price} suffix="" />
-                  </span>
+                  <MenuAddControl id={it.id} name={it.name} qty={cart[it.id] || 0} />
                 </div>
-              </Link>
+              </div>
             </motion.div>
           ))}
           <div className="border-t hairline" />
@@ -422,77 +407,86 @@ function Home() {
               Join the list for new single-origin drops, brewing notes and events
               at the bar.
             </p>
-            <AnimatePresence mode="wait" initial={false}>
-              {subState === 'done' ? (
-                <motion.div
-                  key="sub-done"
-                  initial={reduce ? false : { opacity: 0, y: 10, scale: 0.97 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ type: 'spring', stiffness: 240, damping: 20 }}
-                  className="mt-5 flex items-center gap-4 bg-elevated p-4 pl-5 border-l-2 border-amber"
-                >
-                  <motion.span
-                    initial={reduce ? false : { scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: 'spring', stiffness: 420, damping: 14, delay: 0.06 }}
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber text-espresso"
+            {/* Reserved-height swap zone: the form and the success card are
+                both absolutely placed and crossfade in place, so subscribing
+                never shifts the footer's height. */}
+            <div className="relative mt-5 min-h-[78px]">
+              <AnimatePresence initial={false}>
+                {subState === 'done' ? (
+                  <motion.div
+                    key="sub-done"
+                    initial={reduce ? false : { opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={reduce ? { opacity: 0 } : { opacity: 0, y: -8 }}
+                    transition={{ duration: 0.55, ease: EASE_OUT }}
+                    className="absolute inset-x-0 top-0 flex items-center gap-4 bg-elevated p-4 pl-5 border-l-2 border-amber"
                   >
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="3"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden
+                    <motion.span
+                      initial={reduce ? false : { scale: 0.5, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ duration: 0.5, ease: EASE_OUT, delay: 0.1 }}
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber text-espresso"
                     >
-                      <motion.path
-                        d="M20 6 9 17l-5-5"
-                        initial={reduce ? false : { pathLength: 0 }}
-                        animate={{ pathLength: 1 }}
-                        transition={{ duration: 0.4, delay: 0.18, ease: 'easeOut' }}
-                      />
-                    </svg>
-                  </motion.span>
-                  <div>
-                    <div className="font-mono text-[11px] tracking-[0.18em] text-amber">
-                      YOU’RE ON THE LIST
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden
+                      >
+                        <motion.path
+                          d="M20 6 9 17l-5-5"
+                          initial={reduce ? false : { pathLength: 0 }}
+                          animate={{ pathLength: 1 }}
+                          transition={{ duration: 0.5, delay: 0.26, ease: EASE_OUT }}
+                        />
+                      </svg>
+                    </motion.span>
+                    <div>
+                      <div className="font-mono text-[11px] tracking-[0.18em] text-amber">
+                        YOU’RE ON THE LIST
+                      </div>
+                      <div className="text-sm text-taupe mt-0.5">
+                        Welcome email sent — check your inbox.
+                      </div>
                     </div>
-                    <div className="text-sm text-taupe mt-0.5">
-                      Welcome email sent — check your inbox.
-                    </div>
-                  </div>
-                </motion.div>
-              ) : (
-                <motion.form
-                  key="sub-form"
-                  exit={reduce ? undefined : { opacity: 0, y: -8 }}
-                  className="mt-5 flex items-center bg-elevated p-2 pl-5"
-                  onSubmit={subscribe}
-                >
-                  <input
-                    type="email"
-                    required
-                    value={subEmail}
-                    onChange={(e) => setSubEmail(e.target.value)}
-                    placeholder="your@email.cz"
-                    className="bg-transparent flex-1 outline-none text-sm placeholder:text-muted text-cream"
-                  />
-                  <motion.button
-                    type="submit"
-                    disabled={subState === 'busy'}
-                    className="zrno-cta bg-amber text-espresso font-mono text-[11px] tracking-[0.15em] px-5 py-3 hover:bg-amberdeep transition-[background-color,letter-spacing] duration-300 hover:tracking-[0.22em] disabled:opacity-60"
-                    whileHover={fine && !reduce ? { scale: 1.04 } : undefined}
-                    whileTap={fine && !reduce ? { scale: 0.96 } : undefined}
-                    transition={{ type: 'spring', stiffness: 320, damping: 22 }}
+                  </motion.div>
+                ) : (
+                  <motion.form
+                    key="sub-form"
+                    initial={false}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={reduce ? { opacity: 0 } : { opacity: 0, y: 8 }}
+                    transition={{ duration: 0.4, ease: EASE_OUT }}
+                    className="absolute inset-x-0 top-0 flex items-center bg-elevated p-2 pl-5"
+                    onSubmit={subscribe}
                   >
-                    {subState === 'busy' ? 'SENDING…' : 'SUBSCRIBE'}
-                  </motion.button>
-                </motion.form>
-              )}
-            </AnimatePresence>
+                    <input
+                      type="email"
+                      required
+                      value={subEmail}
+                      onChange={(e) => setSubEmail(e.target.value)}
+                      placeholder="your@email.cz"
+                      className="bg-transparent flex-1 outline-none text-sm placeholder:text-muted text-cream"
+                    />
+                    <motion.button
+                      type="submit"
+                      disabled={subState === 'busy'}
+                      className="zrno-cta bg-amber text-espresso font-mono text-[11px] tracking-[0.15em] px-5 py-3 hover:bg-amberdeep transition-colors duration-300 disabled:opacity-60"
+                      whileHover={fine && !reduce ? { scale: 1.02 } : undefined}
+                      whileTap={fine && !reduce ? { scale: 0.985 } : undefined}
+                      transition={{ type: 'spring', ...SOFT_SPRING }}
+                    >
+                      {subState === 'busy' ? 'SENDING…' : 'SUBSCRIBE'}
+                    </motion.button>
+                  </motion.form>
+                )}
+              </AnimatePresence>
+            </div>
             {subState === 'error' && subMsg && (
               <motion.p
                 initial={reduce ? false : { opacity: 0, y: 6 }}

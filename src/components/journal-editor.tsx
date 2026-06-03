@@ -2,7 +2,7 @@ import { useEditor, EditorContent, type Editor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Image from '@tiptap/extension-image'
 import Placeholder from '@tiptap/extension-placeholder'
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Bold,
   Italic,
@@ -13,11 +13,13 @@ import {
   ListOrdered,
   Link2,
   Link2Off,
-  Image as ImageIcon,
+  ImagePlus,
   Minus,
   Undo2,
   Redo2,
+  Loader2,
 } from 'lucide-react'
+import { uploadImageFile, ACCEPT_IMAGE } from '../lib/upload-client'
 
 // The shared prose stylesheet — the SAME file the published article imports.
 // This is what makes the editing canvas a 1:1 preview of the live article.
@@ -30,6 +32,11 @@ import '../journal-prose.css'
 type Props = {
   value: string
   onChange: (html: string) => void
+}
+
+function imageFilesFrom(list?: FileList | null): File[] {
+  if (!list) return []
+  return Array.from(list).filter((f) => f.type.startsWith('image/'))
 }
 
 function ToolbarButton({
@@ -70,7 +77,15 @@ function Divider() {
   return <span className="mx-1 h-5 w-px self-center bg-muted/25" aria-hidden />
 }
 
-function Toolbar({ editor }: { editor: Editor }) {
+function Toolbar({
+  editor,
+  onPickImage,
+  uploading,
+}: {
+  editor: Editor
+  onPickImage: () => void
+  uploading: boolean
+}) {
   function setLink() {
     const prev = editor.getAttributes('link').href as string | undefined
     const url = window.prompt('Link URL', prev ?? 'https://')
@@ -80,12 +95,6 @@ function Toolbar({ editor }: { editor: Editor }) {
       return
     }
     editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
-  }
-
-  function addImage() {
-    const url = window.prompt('Image URL')
-    if (!url) return
-    editor.chain().focus().setImage({ src: url }).run()
   }
 
   return (
@@ -158,8 +167,16 @@ function Toolbar({ editor }: { editor: Editor }) {
       >
         <Link2Off size={16} strokeWidth={2.25} />
       </ToolbarButton>
-      <ToolbarButton title="Image by URL" onClick={addImage}>
-        <ImageIcon size={16} strokeWidth={2.25} />
+      <ToolbarButton
+        title="Upload image (or paste / drop one in)"
+        onClick={onPickImage}
+        disabled={uploading}
+      >
+        {uploading ? (
+          <Loader2 size={16} strokeWidth={2.25} className="animate-spin text-amber" />
+        ) : (
+          <ImagePlus size={16} strokeWidth={2.25} />
+        )}
       </ToolbarButton>
       <ToolbarButton
         title="Horizontal rule"
@@ -189,6 +206,32 @@ function Toolbar({ editor }: { editor: Editor }) {
 }
 
 export default function JournalEditor({ value, onChange }: Props) {
+  // Keep a ref to the live editor so the (once-created) paste/drop handlers
+  // can always reach the current instance.
+  const editorRef = useRef<Editor | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+  const [uploadErr, setUploadErr] = useState('')
+
+  async function uploadAndInsert(file: File, at?: number) {
+    const ed = editorRef.current
+    if (!ed) return
+    setUploadErr('')
+    setUploading(true)
+    try {
+      const url = await uploadImageFile(file, 'body')
+      if (typeof at === 'number') {
+        ed.chain().focus().insertContentAt(at, { type: 'image', attrs: { src: url } }).run()
+      } else {
+        ed.chain().focus().setImage({ src: url }).run()
+      }
+    } catch (err: any) {
+      setUploadErr(err?.message || 'Image upload failed.')
+    } finally {
+      setUploading(false)
+    }
+  }
+
   const editor = useEditor({
     // CRITICAL for SSR: do not render the editor on the server (needs the DOM).
     immediatelyRender: false,
@@ -205,7 +248,7 @@ export default function JournalEditor({ value, onChange }: Props) {
       }),
       Image.configure({ inline: false, HTMLAttributes: { loading: 'lazy' } }),
       Placeholder.configure({
-        placeholder: 'Tell the story…',
+        placeholder: 'Tell the story… (paste or drop an image to upload it)',
       }),
     ],
     content: value,
@@ -214,9 +257,29 @@ export default function JournalEditor({ value, onChange }: Props) {
         // SAME class as the published article — 1:1 typography while editing.
         class: 'prose-article focus:outline-none',
       },
+      // Medium-style: paste an image from the clipboard → upload + insert.
+      handlePaste: (_view, event) => {
+        const files = imageFilesFrom((event as ClipboardEvent).clipboardData?.files)
+        if (!files.length) return false
+        event.preventDefault()
+        files.forEach((f) => uploadAndInsert(f))
+        return true
+      },
+      // …or drag an image file straight onto the canvas.
+      handleDrop: (view, event) => {
+        const e = event as DragEvent
+        const files = imageFilesFrom(e.dataTransfer?.files)
+        if (!files.length) return false
+        event.preventDefault()
+        const at = view.posAtCoords({ left: e.clientX, top: e.clientY })?.pos
+        files.forEach((f) => uploadAndInsert(f, at))
+        return true
+      },
     },
     onUpdate: ({ editor }) => onChange(editor.getHTML()),
   })
+
+  editorRef.current = editor
 
   // Keep the editor in sync if the bound value is replaced externally
   // (e.g. when an edit-form loads its post after mount).
@@ -230,9 +293,31 @@ export default function JournalEditor({ value, onChange }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, editor])
 
+  async function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = '' // allow re-picking the same file
+    if (file) await uploadAndInsert(file)
+  }
+
   return (
     <div className="w-full">
-      {editor && <Toolbar editor={editor} />}
+      <input
+        ref={fileRef}
+        type="file"
+        accept={ACCEPT_IMAGE}
+        className="hidden"
+        onChange={onFileChange}
+      />
+      {editor && (
+        <Toolbar
+          editor={editor}
+          uploading={uploading}
+          onPickImage={() => fileRef.current?.click()}
+        />
+      )}
+      {uploadErr && (
+        <p className="mb-3 text-sm text-red-400 max-w-[680px] mx-auto">{uploadErr}</p>
+      )}
       <EditorContent editor={editor} />
     </div>
   )

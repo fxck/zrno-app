@@ -1,51 +1,46 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState } from 'react'
-import { motion, useReducedMotion } from 'motion/react'
-import { MENU, MENU_BY_ID } from '../lib/menu'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { MENU } from '../lib/menu'
+import { useCart, cartSummary, setQty, removeItem, clearCart } from '../lib/cart'
 import { Button } from '../components/ui/button'
 import { Input, Label } from '../components/ui/input'
+import { MenuAddControl } from '../components/menu-add-control'
 import { EASE_OUT, MaskedLines } from '../components/motion-primitives'
 
-export const Route = createFileRoute('/order')({
-  // Deep-link from the landing menu: /order?add=<itemId> pre-seeds the cart.
-  validateSearch: (search: Record<string, unknown>): { add?: string } => ({
-    add: typeof search.add === 'string' ? search.add : undefined,
-  }),
-  component: OrderPage,
-})
+export const Route = createFileRoute('/order')({ component: OrderPage })
 
 type OrderResult = { orderId: string; total: number; status: string }
 
 function OrderPage() {
   const reduce = useReducedMotion()
-  const { add } = Route.useSearch()
-  const [qty, setQty] = useState<Record<string, number>>(() =>
-    add && MENU_BY_ID[add] ? { [add]: 1 } : {},
-  )
+  const cart = useCart()
+  const { lines, count, total } = cartSummary(cart)
+
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState<OrderResult | null>(null)
 
-  const items = MENU.map((m) => ({ ...m, qty: qty[m.id] || 0 })).filter((i) => i.qty > 0)
-  const total = items.reduce((s, i) => s + i.price * i.qty, 0)
-  const bump = (id: string, d: number) =>
-    setQty((q) => ({ ...q, [id]: Math.max(0, Math.min(99, (q[id] || 0) + d)) }))
-
   async function submit(e: React.FormEvent) {
     e.preventDefault()
-    if (!items.length) return setError('Add at least one item.')
+    if (!count) return setError('Add at least one item from the menu.')
     setBusy(true)
     setError('')
     try {
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ name, email, items: items.map((i) => ({ id: i.id, qty: i.qty })) }),
+        body: JSON.stringify({
+          name,
+          email,
+          items: lines.map((l) => ({ id: l.item.id, qty: l.qty })),
+        }),
       })
       const data = await res.json()
       if (!res.ok || !data.ok) throw new Error(data.error || 'Something went wrong.')
+      clearCart()
       setDone({ orderId: data.orderId, total: data.total, status: data.status })
     } catch (err: any) {
       setError(err.message || 'Order failed.')
@@ -60,7 +55,7 @@ function OrderPage() {
         <Link to="/" className="font-display text-2xl tracking-wider">
           ZRNO
         </Link>
-        <Link to="/" className="font-mono text-[11px] tracking-[0.18em] text-taupe hover:text-cream">
+        <Link to="/" className="font-mono text-[11px] tracking-[0.18em] text-taupe hover:text-cream transition-colors">
           ← BACK TO SITE
         </Link>
       </header>
@@ -72,55 +67,39 @@ function OrderPage() {
           <section>
             <motion.div
               className="font-mono text-xs tracking-[0.2em] text-amber"
-              initial={reduce ? false : { opacity: 0, y: 10 }}
+              initial={reduce ? false : { opacity: 0, y: 8 }}
               animate={reduce ? {} : { opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: EASE_OUT }}
             >
               ORDER ONLINE
             </motion.div>
             <h1 className="font-display t-lg mt-3 mb-10">
-              <MaskedLines lines={['PICK YOUR CUP']} trigger="mount" delay={0.08} />
+              <MaskedLines lines={['PICK YOUR CUP']} trigger="mount" delay={0.06} />
             </h1>
             <div>
               {MENU.map((m, i) => (
                 <motion.div
                   key={m.id}
                   className="flex items-center justify-between gap-4 border-t border-muted/15 py-5"
-                  initial={reduce ? false : { opacity: 0, y: 16 }}
+                  initial={reduce ? false : { opacity: 0, y: 12 }}
                   animate={reduce ? {} : { opacity: 1, y: 0 }}
                   transition={{
-                    duration: 0.5,
+                    duration: 0.6,
                     ease: EASE_OUT,
-                    delay: reduce ? 0 : 0.15 + i * 0.06,
+                    delay: reduce ? 0 : 0.12 + i * 0.05,
                   }}
                 >
-                  <div>
+                  <div className="min-w-0">
                     <div className="font-display text-2xl md:text-3xl leading-none">
                       {m.name.toUpperCase()}
                     </div>
                     <div className="text-sm text-taupe mt-1">{m.desc}</div>
                   </div>
                   <div className="flex items-center gap-4 shrink-0">
-                    <span className="font-mono text-sm text-amber w-16 text-right">{m.price} Kč</span>
-                    <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => bump(m.id, -1)}
-                        className="h-8 w-8 border border-muted/40 text-cream hover:bg-elevated text-lg leading-none"
-                        aria-label={`Remove one ${m.name}`}
-                      >
-                        −
-                      </button>
-                      <span className="w-6 text-center font-mono">{qty[m.id] || 0}</span>
-                      <button
-                        type="button"
-                        onClick={() => bump(m.id, 1)}
-                        className="h-8 w-8 bg-amber text-espresso hover:bg-amberdeep text-lg leading-none"
-                        aria-label={`Add one ${m.name}`}
-                      >
-                        +
-                      </button>
-                    </div>
+                    <span className="font-mono text-sm text-amber w-14 text-right tabular-nums">
+                      {m.price} Kč
+                    </span>
+                    <MenuAddControl id={m.id} name={m.name} qty={cart[m.id] || 0} />
                   </div>
                 </motion.div>
               ))}
@@ -128,24 +107,96 @@ function OrderPage() {
           </section>
 
           <aside className="lg:sticky lg:top-8 h-fit bg-surface border border-muted/20 p-6 md:p-8">
-            <div className="font-mono text-[11px] tracking-[0.2em] text-taupe">YOUR ORDER</div>
-            <div className="mt-5 space-y-2 min-h-16">
-              {items.length === 0 ? (
-                <p className="text-taupe text-sm">No items yet — add something from the menu.</p>
-              ) : (
-                items.map((i) => (
-                  <div key={i.id} className="flex justify-between text-sm">
-                    <span className="text-cream">
-                      {i.qty}× {i.name}
-                    </span>
-                    <span className="text-taupe">{i.price * i.qty} Kč</span>
-                  </div>
-                ))
+            <div className="flex items-center justify-between">
+              <div className="font-mono text-[11px] tracking-[0.2em] text-taupe">YOUR ORDER</div>
+              {count > 0 && (
+                <button
+                  type="button"
+                  onClick={() => clearCart()}
+                  className="font-mono text-[10px] tracking-[0.15em] text-muted hover:text-taupe transition-colors"
+                >
+                  CLEAR
+                </button>
               )}
             </div>
+
+            <div className="mt-5 min-h-16">
+              {lines.length === 0 ? (
+                <p className="text-taupe text-sm leading-relaxed">
+                  Your order is empty — add something from the menu and it’ll show up here.
+                </p>
+              ) : (
+                <AnimatePresence mode="popLayout" initial={false}>
+                  {lines.map((line) => (
+                    <motion.div
+                      key={line.item.id}
+                      layout
+                      initial={reduce ? false : { opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.97 }}
+                      transition={{ duration: 0.32, ease: EASE_OUT }}
+                      className="flex items-center justify-between gap-3 border-b border-muted/10 py-3 last:border-b-0"
+                    >
+                      <div className="min-w-0">
+                        <div className="text-sm text-cream truncate">{line.item.name}</div>
+                        <div className="text-[11px] text-muted mt-0.5 tabular-nums">
+                          {line.item.price} Kč each
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <div className="flex items-center gap-1 rounded-full border border-muted/25 p-0.5">
+                          <SummaryStep
+                            label={`Remove one ${line.item.name}`}
+                            onClick={() => setQty(line.item.id, line.qty - 1)}
+                          >
+                            −
+                          </SummaryStep>
+                          <span className="w-5 text-center font-mono text-xs tabular-nums text-cream">
+                            {line.qty}
+                          </span>
+                          <SummaryStep
+                            label={`Add one ${line.item.name}`}
+                            accent
+                            onClick={() => setQty(line.item.id, line.qty + 1)}
+                          >
+                            +
+                          </SummaryStep>
+                        </div>
+                        <span className="w-16 text-right font-mono text-sm text-taupe tabular-nums">
+                          {line.lineTotal} Kč
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeItem(line.item.id)}
+                          aria-label={`Remove ${line.item.name} from your order`}
+                          className="text-muted hover:text-cream transition-colors text-sm leading-none"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              )}
+            </div>
+
             <div className="flex justify-between items-end border-t border-muted/20 mt-5 pt-5">
               <span className="font-mono text-[11px] tracking-[0.2em] text-taupe">TOTAL</span>
-              <span className="font-display text-3xl text-amber">{total} Kč</span>
+              <span className="font-display text-3xl text-amber tabular-nums overflow-hidden">
+                <AnimatePresence mode="popLayout" initial={false}>
+                  <motion.span
+                    key={total}
+                    initial={reduce ? false : { y: '60%', opacity: 0 }}
+                    animate={{ y: '0%', opacity: 1 }}
+                    exit={reduce ? { opacity: 0 } : { y: '-60%', opacity: 0 }}
+                    transition={{ duration: 0.32, ease: EASE_OUT }}
+                    className="inline-block"
+                  >
+                    {total}
+                  </motion.span>
+                </AnimatePresence>{' '}
+                Kč
+              </span>
             </div>
 
             <form onSubmit={submit} className="mt-7 space-y-4">
@@ -158,8 +209,8 @@ function OrderPage() {
                 <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@email.cz" required />
               </div>
               {error && <p className="text-red-400 text-sm">{error}</p>}
-              <Button type="submit" size="lg" className="w-full" disabled={busy || !items.length}>
-                {busy ? 'Placing order…' : `Pay ${total} Kč`}
+              <Button type="submit" size="lg" className="w-full" disabled={busy || !count}>
+                {busy ? 'Placing order…' : count ? `Pay ${total} Kč` : 'Add an item to continue'}
               </Button>
               <p className="text-muted text-[11px] leading-relaxed">
                 Payment is simulated for this demo — no card is charged. A confirmation email is sent
@@ -170,6 +221,34 @@ function OrderPage() {
         </main>
       )}
     </div>
+  )
+}
+
+function SummaryStep({
+  children,
+  onClick,
+  label,
+  accent = false,
+}: {
+  children: React.ReactNode
+  onClick: () => void
+  label: string
+  accent?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      className={[
+        'flex h-6 w-6 items-center justify-center rounded-full text-sm leading-none transition-colors duration-200',
+        accent
+          ? 'bg-amber text-espresso hover:bg-amberdeep'
+          : 'text-taupe hover:bg-elevated hover:text-cream',
+      ].join(' ')}
+    >
+      {children}
+    </button>
   )
 }
 

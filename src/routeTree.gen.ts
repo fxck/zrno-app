@@ -14,6 +14,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as JournalIndexRouteImport } from './routes/journal/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as JournalSlugRouteImport } from './routes/journal/$slug'
+import { Route as ApiUploadRouteImport } from './routes/api/upload'
 import { Route as ApiSubscribeRouteImport } from './routes/api/subscribe'
 import { Route as ApiOrdersRouteImport } from './routes/api/orders'
 import { Route as AdminDashboardRouteImport } from './routes/admin/dashboard'
@@ -45,6 +46,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
 const JournalSlugRoute = JournalSlugRouteImport.update({
   id: '/journal/$slug',
   path: '/journal/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiUploadRoute = ApiUploadRouteImport.update({
+  id: '/api/upload',
+  path: '/api/upload',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiSubscribeRoute = ApiSubscribeRouteImport.update({
@@ -89,6 +95,7 @@ export interface FileRoutesByFullPath {
   '/admin/dashboard': typeof AdminDashboardRoute
   '/api/orders': typeof ApiOrdersRoute
   '/api/subscribe': typeof ApiSubscribeRoute
+  '/api/upload': typeof ApiUploadRoute
   '/journal/$slug': typeof JournalSlugRoute
   '/admin/': typeof AdminIndexRoute
   '/journal/': typeof JournalIndexRoute
@@ -103,6 +110,7 @@ export interface FileRoutesByTo {
   '/admin/dashboard': typeof AdminDashboardRoute
   '/api/orders': typeof ApiOrdersRoute
   '/api/subscribe': typeof ApiSubscribeRoute
+  '/api/upload': typeof ApiUploadRoute
   '/journal/$slug': typeof JournalSlugRoute
   '/admin': typeof AdminIndexRoute
   '/journal': typeof JournalIndexRoute
@@ -118,6 +126,7 @@ export interface FileRoutesById {
   '/admin/dashboard': typeof AdminDashboardRoute
   '/api/orders': typeof ApiOrdersRoute
   '/api/subscribe': typeof ApiSubscribeRoute
+  '/api/upload': typeof ApiUploadRoute
   '/journal/$slug': typeof JournalSlugRoute
   '/admin/': typeof AdminIndexRoute
   '/journal/': typeof JournalIndexRoute
@@ -134,6 +143,7 @@ export interface FileRouteTypes {
     | '/admin/dashboard'
     | '/api/orders'
     | '/api/subscribe'
+    | '/api/upload'
     | '/journal/$slug'
     | '/admin/'
     | '/journal/'
@@ -148,6 +158,7 @@ export interface FileRouteTypes {
     | '/admin/dashboard'
     | '/api/orders'
     | '/api/subscribe'
+    | '/api/upload'
     | '/journal/$slug'
     | '/admin'
     | '/journal'
@@ -162,6 +173,7 @@ export interface FileRouteTypes {
     | '/admin/dashboard'
     | '/api/orders'
     | '/api/subscribe'
+    | '/api/upload'
     | '/journal/$slug'
     | '/admin/'
     | '/journal/'
@@ -177,6 +189,7 @@ export interface RootRouteChildren {
   AdminDashboardRoute: typeof AdminDashboardRoute
   ApiOrdersRoute: typeof ApiOrdersRoute
   ApiSubscribeRoute: typeof ApiSubscribeRoute
+  ApiUploadRoute: typeof ApiUploadRoute
   JournalSlugRoute: typeof JournalSlugRoute
   AdminIndexRoute: typeof AdminIndexRoute
   JournalIndexRoute: typeof JournalIndexRoute
@@ -221,6 +234,13 @@ declare module '@tanstack/react-router' {
       path: '/journal/$slug'
       fullPath: '/journal/$slug'
       preLoaderRoute: typeof JournalSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/upload': {
+      id: '/api/upload'
+      path: '/api/upload'
+      fullPath: '/api/upload'
+      preLoaderRoute: typeof ApiUploadRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/subscribe': {
@@ -281,6 +301,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminDashboardRoute: AdminDashboardRoute,
   ApiOrdersRoute: ApiOrdersRoute,
   ApiSubscribeRoute: ApiSubscribeRoute,
+  ApiUploadRoute: ApiUploadRoute,
   JournalSlugRoute: JournalSlugRoute,
   AdminIndexRoute: AdminIndexRoute,
   JournalIndexRoute: JournalIndexRoute,
