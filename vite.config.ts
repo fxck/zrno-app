@@ -9,6 +9,12 @@ import { nitro } from 'nitro/vite'
 
 const config = defineConfig({
   resolve: { tsconfigPaths: true },
+  server: {
+    host: true,
+    // Behind the Zerops L7 subdomain, the dev server receives a proxied
+    // Host header — allow it so Vite doesn't 403 the request.
+    allowedHosts: true,
+  },
   plugins: [
     devtools(),
     nitro({ rollupConfig: { external: [/^@sentry\//] } }),
