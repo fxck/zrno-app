@@ -47,7 +47,14 @@ function Home() {
       </header>
 
       {/* HERO */}
-      <section id="top" className="hero-bg grain relative overflow-hidden">
+      <section
+        id="top"
+        className="relative overflow-hidden bg-espresso bg-cover bg-center"
+        style={{
+          backgroundImage:
+            'linear-gradient(180deg, rgba(11,9,8,0.80) 0%, rgba(11,9,8,0.42) 45%, rgba(11,9,8,0.96) 100%), url(/hero.jpg)',
+        }}
+      >
         <div className="relative z-10 flex min-h-[86vh] flex-col justify-between pt-16">
           <div className="flex justify-between px-6 md:px-14 font-mono text-[11px] md:text-xs tracking-[0.2em] text-taupe">
             <span>SPECIALTY COFFEE ROASTERS</span>
@@ -136,7 +143,13 @@ function Home() {
         </div>
 
         <div className="mt-16 md:mt-24 md:pl-[18%]">
-          <div className="panel-bg grain relative h-64 md:h-80 max-w-2xl flex items-end p-6">
+          <div
+            className="relative h-64 md:h-80 max-w-2xl flex items-end p-6 bg-cover bg-center"
+            style={{
+              backgroundImage:
+                'linear-gradient(0deg, rgba(11,9,8,0.72) 0%, rgba(11,9,8,0.08) 55%), url(/roastery.jpg)',
+            }}
+          >
             <span className="relative z-10 font-mono text-[11px] tracking-[0.2em] text-cream/70">
               ROASTERY · ŽIŽKOV
             </span>
@@ -146,7 +159,13 @@ function Home() {
 
       {/* VISIT */}
       <section id="visit" className="bg-surface grid md:grid-cols-2">
-        <div className="panel-bg grain relative min-h-[320px] md:min-h-[560px] flex items-end p-8">
+        <div
+          className="relative min-h-[320px] md:min-h-[560px] flex items-end p-8 bg-cover bg-center"
+          style={{
+            backgroundImage:
+              'linear-gradient(0deg, rgba(11,9,8,0.78) 0%, rgba(11,9,8,0.12) 60%), url(/bar.jpg)',
+          }}
+        >
           <span className="relative z-10 font-mono text-[11px] tracking-[0.2em] text-cream/70">
             THE BAR · KUBELÍKOVA
           </span>
