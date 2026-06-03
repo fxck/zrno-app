@@ -14,6 +14,11 @@ zerops:
           httpSupport: true
       envVariables:
         NODE_ENV: development
+        DATABASE_URL: ${db_connectionString}
+        SMTP_HOST: mailpit
+        SMTP_PORT: "1025"
+        EMAIL_FROM: ZRNO Coffee <hello@zrno.cz>
+        EMAIL_PROVIDER: smtp
 
   # Production build (appstage): cross-deployed from appdev. Vite + Nitro
   # produce a self-contained Node server at .output/server/index.mjs.
@@ -33,4 +38,9 @@ zerops:
       envVariables:
         NODE_ENV: production
         PORT: "3000"
+        DATABASE_URL: ${db_connectionString}
+        SMTP_HOST: mailpit
+        SMTP_PORT: "1025"
+        EMAIL_FROM: ZRNO Coffee <hello@zrno.cz>
+        EMAIL_PROVIDER: smtp
       start: node .output/server/index.mjs

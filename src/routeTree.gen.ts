@@ -9,38 +9,127 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as OrderRouteImport } from './routes/order'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as ApiSubscribeRouteImport } from './routes/api/subscribe'
+import { Route as ApiOrdersRouteImport } from './routes/api/orders'
+import { Route as AdminDashboardRouteImport } from './routes/admin/dashboard'
+import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
+const OrderRoute = OrderRouteImport.update({
+  id: '/order',
+  path: '/order',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSubscribeRoute = ApiSubscribeRouteImport.update({
+  id: '/api/subscribe',
+  path: '/api/subscribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOrdersRoute = ApiOrdersRouteImport.update({
+  id: '/api/orders',
+  path: '/api/orders',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminDashboardRoute = AdminDashboardRouteImport.update({
+  id: '/admin/dashboard',
+  path: '/admin/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
+  id: '/api/auth/$',
+  path: '/api/auth/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/order': typeof OrderRoute
+  '/admin/dashboard': typeof AdminDashboardRoute
+  '/api/orders': typeof ApiOrdersRoute
+  '/api/subscribe': typeof ApiSubscribeRoute
+  '/admin/': typeof AdminIndexRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/order': typeof OrderRoute
+  '/admin/dashboard': typeof AdminDashboardRoute
+  '/api/orders': typeof ApiOrdersRoute
+  '/api/subscribe': typeof ApiSubscribeRoute
+  '/admin': typeof AdminIndexRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/order': typeof OrderRoute
+  '/admin/dashboard': typeof AdminDashboardRoute
+  '/api/orders': typeof ApiOrdersRoute
+  '/api/subscribe': typeof ApiSubscribeRoute
+  '/admin/': typeof AdminIndexRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/order'
+    | '/admin/dashboard'
+    | '/api/orders'
+    | '/api/subscribe'
+    | '/admin/'
+    | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/order'
+    | '/admin/dashboard'
+    | '/api/orders'
+    | '/api/subscribe'
+    | '/admin'
+    | '/api/auth/$'
+  id:
+    | '__root__'
+    | '/'
+    | '/order'
+    | '/admin/dashboard'
+    | '/api/orders'
+    | '/api/subscribe'
+    | '/admin/'
+    | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  OrderRoute: typeof OrderRoute
+  AdminDashboardRoute: typeof AdminDashboardRoute
+  ApiOrdersRoute: typeof ApiOrdersRoute
+  ApiSubscribeRoute: typeof ApiSubscribeRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+  ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/order': {
+      id: '/order'
+      path: '/order'
+      fullPath: '/order'
+      preLoaderRoute: typeof OrderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +137,52 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/': {
+      id: '/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/subscribe': {
+      id: '/api/subscribe'
+      path: '/api/subscribe'
+      fullPath: '/api/subscribe'
+      preLoaderRoute: typeof ApiSubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/orders': {
+      id: '/api/orders'
+      path: '/api/orders'
+      fullPath: '/api/orders'
+      preLoaderRoute: typeof ApiOrdersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/dashboard': {
+      id: '/admin/dashboard'
+      path: '/admin/dashboard'
+      fullPath: '/admin/dashboard'
+      preLoaderRoute: typeof AdminDashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/auth/$': {
+      id: '/api/auth/$'
+      path: '/api/auth/$'
+      fullPath: '/api/auth/$'
+      preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  OrderRoute: OrderRoute,
+  AdminDashboardRoute: AdminDashboardRoute,
+  ApiOrdersRoute: ApiOrdersRoute,
+  ApiSubscribeRoute: ApiSubscribeRoute,
+  AdminIndexRoute: AdminIndexRoute,
+  ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -1,4 +1,6 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
+import { useState } from 'react'
+import { MENU } from '../lib/menu'
 
 export const Route = createFileRoute('/')({ component: Home })
 
@@ -9,14 +11,6 @@ const NAV: Array<[string, string]> = [
   ['Visit', '#visit'],
 ]
 
-const MENU = [
-  { name: 'ESPRESSO', desc: 'Double shot of our house Prague blend', price: '75' },
-  { name: 'FLAT WHITE', desc: 'Velvety microfoam, served at six ounces', price: '95' },
-  { name: 'CORTADO', desc: 'Equal parts espresso and steamed milk', price: '85' },
-  { name: 'POUR OVER', desc: 'Single origin, rotating seasonal selection', price: '110' },
-  { name: 'COLD BREW', desc: 'Eighteen-hour slow steep, deep and smooth', price: '105' },
-]
-
 const DETAILS = [
   { h: 'Address', lines: ['Kubelíkova 22', '130 00 Praha 3', 'Žižkov'] },
   { h: 'Hours', lines: ['Mon–Fri  7:00–19:00', 'Sat–Sun  8:00–18:00'] },
@@ -24,6 +18,31 @@ const DETAILS = [
 ]
 
 function Home() {
+  const [subEmail, setSubEmail] = useState('')
+  const [subState, setSubState] = useState<'idle' | 'busy' | 'done' | 'error'>('idle')
+  const [subMsg, setSubMsg] = useState('')
+
+  async function subscribe(e: React.FormEvent) {
+    e.preventDefault()
+    setSubState('busy')
+    setSubMsg('')
+    try {
+      const res = await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email: subEmail }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Subscription failed.')
+      setSubState('done')
+      setSubMsg('You’re on the list — check your inbox.')
+      setSubEmail('')
+    } catch (err: any) {
+      setSubState('error')
+      setSubMsg(err.message || 'Something went wrong.')
+    }
+  }
+
   return (
     <div className="font-body bg-espresso text-cream">
       {/* NAV */}
@@ -38,12 +57,12 @@ function Home() {
             </a>
           ))}
         </nav>
-        <a
-          href="#visit"
+        <Link
+          to="/order"
           className="bg-amber text-espresso font-mono text-[11px] tracking-[0.18em] px-5 py-3 hover:bg-amberdeep transition-colors"
         >
           ORDER ONLINE
-        </a>
+        </Link>
       </header>
 
       {/* HERO */}
@@ -100,11 +119,11 @@ function Home() {
 
         <div className="mt-12 md:mt-16">
           {MENU.map((it) => (
-            <div key={it.name} className="border-t hairline">
+            <div key={it.id} className="border-t hairline">
               <div className="flex items-end justify-between gap-6 py-6 md:py-7">
                 <div className="flex items-end gap-5 flex-wrap">
                   <span className="font-display text-3xl md:text-5xl leading-none">
-                    {it.name}
+                    {it.name.toUpperCase()}
                   </span>
                   <span className="text-sm text-taupe mb-1 max-w-xs">
                     {it.desc}
@@ -207,22 +226,28 @@ function Home() {
               Join the list for new single-origin drops, brewing notes and events
               at the bar.
             </p>
-            <form
-              className="mt-5 flex items-center bg-elevated p-2 pl-5"
-              onSubmit={(e) => e.preventDefault()}
-            >
+            <form className="mt-5 flex items-center bg-elevated p-2 pl-5" onSubmit={subscribe}>
               <input
                 type="email"
+                required
+                value={subEmail}
+                onChange={(e) => setSubEmail(e.target.value)}
                 placeholder="your@email.cz"
                 className="bg-transparent flex-1 outline-none text-sm placeholder:text-muted text-cream"
               />
               <button
                 type="submit"
-                className="bg-amber text-espresso font-mono text-[11px] tracking-[0.15em] px-5 py-3 hover:bg-amberdeep transition-colors"
+                disabled={subState === 'busy'}
+                className="bg-amber text-espresso font-mono text-[11px] tracking-[0.15em] px-5 py-3 hover:bg-amberdeep transition-colors disabled:opacity-60"
               >
-                SUBSCRIBE
+                {subState === 'busy' ? 'SENDING…' : 'SUBSCRIBE'}
               </button>
             </form>
+            {subMsg && (
+              <p className={`mt-3 text-sm ${subState === 'error' ? 'text-red-400' : 'text-amber'}`}>
+                {subMsg}
+              </p>
+            )}
           </div>
         </div>
 
