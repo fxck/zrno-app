@@ -3,22 +3,23 @@ import { motion, useReducedMotion } from 'motion/react'
 import { EASE_OUT, usePointerFine } from './motion-primitives'
 
 /* ------------------------------------------------------------------ *
- * BeanRain — coffee beans rain down INSIDE a headline, only in a soft
- * cloud around the cursor.
+ * BeanRain — a particle EMITTER, not a highlight.
  *
- * The visible headline is real DOM text (accessible, SSR'd). Over it a
- * canvas runs a small physics sim: bean-shaped particles (an "O" — a
- * capsule with a punched hole, drawn in a single even-odd fill) fall
- * under gravity and tumble. The canvas is clipped to the glyph shapes
- * (a mask redrawn from the same text) and to a radial cloud at the
- * cursor.
+ * While hovering a headline, bean particles (the actual font "O") are
+ * spawned just above the glyphs at the cursor's x (a narrow showerhead
+ * that follows the mouse) and fall straight down under gravity. They
+ * keep their own x, so moving the mouse leaves trailing streams of
+ * falling beans. Everything is clipped to the glyph shapes, so beans
+ * only show inside the letters they fall through.
  *
- * Performance: the sim only animates while hovered (rAF stops when
- * idle), the font size is cached (no per-frame getComputedStyle), and —
- * the big one — every per-frame composite (bean draws, glyph mask,
- * cursor gradient) is confined to a small box around the pointer instead
- * of the whole (possibly huge) headline canvas. Disabled for
- * reduced-motion / coarse pointers.
+ * On mouse-leave the emitter just stops; the beans already in flight
+ * finish falling out the bottom (no fade). `whole` emits across the
+ * entire glyph width instead of at the cursor (used for the single
+ * tilted hero O — its canvas + mask rotate together so the clip holds).
+ *
+ * Perf: rAF only runs while emitting or while drops are still on screen;
+ * font size is cached; the only per-frame composite is one mask drawImage.
+ * Disabled for reduced-motion / coarse pointers.
  * ------------------------------------------------------------------ */
 
 type Line = string | { text: string; accent?: boolean }
@@ -35,6 +36,7 @@ type Bean = {
   vrot: number
   len: number
   deep: boolean
+  active: boolean
 }
 
 export function BeanRain({
@@ -44,8 +46,8 @@ export function BeanRain({
 }: {
   lines: Line[]
   className?: string
-  /** reveal the whole text on hover instead of a cursor cloud-column
-      (used for single glyphs like the tilted hero O) */
+  /** emit across the whole glyph instead of at the cursor x (single glyphs
+      like the tilted hero O) */
   whole?: boolean
 }) {
   const reduce = useReducedMotion()
@@ -68,54 +70,61 @@ export function BeanRain({
     if (!ctx) return
 
     const dpr = Math.min(2, window.devicePixelRatio || 1)
+    const POOL = 180
     let width = 0
     let height = 0
-    let fs = 48 // cached font size (px) — refreshed on resize/enter, never per-frame
-    let beans: Bean[] = []
+    let fs = 48 // cached font size — refreshed on resize/enter, never per-frame
+    const beans: Bean[] = Array.from({ length: POOL }, () => ({
+      x: 0, y: 0, vx: 0, vy: 0, rot: 0, vrot: 0, len: 10, deep: false, active: false,
+    }))
     let mask: HTMLCanvasElement | null = null
     const pointer = { x: -9999 }
     let hovering = false
+    let emitAcc = 0
+    let emitCount = 0
     let raf = 0
     let lastT = 0
 
     const rand = (a: number, b: number) => a + Math.random() * (b - a)
 
-    // Bean dimensions/speeds are clamped in absolute px so a 480px hero glyph
-    // doesn't get 80px beans screaming down the screen — they stay bean-sized
-    // and gently paced at every headline scale.
-    const beanLen = () =>
-      Math.max(12, Math.min(46, fs * 0.12)) * rand(0.8, 1.18)
-    // Gentle gravity + a low terminal velocity → a calm, steady fall.
-    const gravity = () => Math.min(680, Math.max(260, fs * 0.85))
-    const TERMINAL = 230
+    const beanLen = () => Math.max(11, Math.min(42, fs * 0.11)) * rand(0.8, 1.2)
+    // Gentle gravity + low terminal velocity → a calm, steady fall.
+    const gravity = () => Math.min(640, Math.max(240, fs * 0.8))
+    const TERMINAL = 220
+    // Showerhead half-width around the cursor. Thin, but enough to wet a letter.
+    const spreadHalf = () => Math.max(10, fs * 0.26)
+    const emitRate = () => (whole ? Math.max(40, width / 7) : 60) // beans / sec
 
-    function resetBean(b: Bean, atTop: boolean, i: number) {
+    function spawn(b: Bean, atY?: number) {
+      b.active = true
       b.len = beanLen()
-      b.x = Math.random() * width
-      b.y = atTop ? -b.len - Math.random() * height * 0.5 : Math.random() * height
-      // Falls essentially straight down — like rain from a showerhead — with
-      // only a whisper of drift/turn so it isn't mechanically identical.
-      b.vx = rand(-3, 3)
-      b.vy = rand(16, 50)
+      b.x = whole
+        ? Math.random() * width
+        : pointer.x + rand(-spreadHalf(), spreadHalf())
+      b.y = atY ?? -b.len - Math.random() * fs * 0.25
+      b.vx = rand(-2, 2)
+      b.vy = rand(8, 36)
       b.rot = Math.random() * Math.PI * 2
-      b.vrot = rand(-0.45, 0.45)
-      b.deep = i % 3 === 0
+      b.vrot = rand(-0.4, 0.4)
+      b.deep = emitCount++ % 3 === 0
     }
 
-    function seed() {
-      const count = Math.max(26, Math.min(220, Math.round(width / 11)))
-      beans = Array.from({ length: count }, (_, i) => {
-        const b: Bean = {
-          x: 0, y: 0, vx: 0, vy: 0, rot: 0, vrot: 0, len: 10, deep: false,
-        }
-        resetBean(b, false, i)
-        return b
-      })
+    function firstDead(): Bean | undefined {
+      for (let i = 0; i < beans.length; i++) if (!beans[i].active) return beans[i]
+      return undefined
     }
 
-    // Each bean is the actual font "O" (so it matches the headline glyphs
-    // exactly), drawn rotated. Anton's cap height ≈ 0.72·font-size, so we
-    // size the font up to land a glyph of visual height ~len.
+    // Prime a few drops already in flight so the stream is there immediately.
+    function prime() {
+      const n = whole ? 64 : 26
+      for (let k = 0; k < n; k++) {
+        const b = firstDead()
+        if (!b) break
+        spawn(b, Math.random() * height)
+      }
+    }
+
+    // Each bean is the actual font "O", rotated. Anton cap height ≈ 0.72·size.
     function drawBean(b: Bean) {
       ctx!.save()
       ctx!.translate(b.x, b.y)
@@ -152,9 +161,8 @@ export function BeanRain({
         const mt = mc.measureText(text)
         const ascent = mt.fontBoundingBoxAscent ?? size * 0.8
         const descent = mt.fontBoundingBoxDescent ?? size * 0.2
-        // offset* is the pre-transform LAYOUT box (relative to the positioned
-        // host), so the canvas, mask, and glyph stay aligned even when the
-        // whole field is rotated by a parent (the tilted hero O).
+        // offset* = pre-transform LAYOUT box, so the canvas/mask/glyph stay
+        // aligned even when the whole field is rotated by a parent (hero O).
         const baseline = (el.offsetHeight - (ascent + descent)) / 2 + ascent
         mc.fillText(text, el.offsetLeft, el.offsetTop + baseline)
       })
@@ -167,7 +175,6 @@ export function BeanRain({
       fs = parseFloat(getComputedStyle(host).fontSize) || 48
       canvas.width = Math.max(1, Math.round(width * dpr))
       canvas.height = Math.max(1, Math.round(height * dpr))
-      seed()
       buildMask()
     }
 
@@ -175,67 +182,44 @@ export function BeanRain({
       const dt = Math.min(0.05, (t - lastT) / 1000 || 0)
       lastT = t
 
+      // Emit from the cursor x (or across the glyph) while hovering.
+      if (hovering) {
+        emitAcc += emitRate() * dt
+        while (emitAcc >= 1) {
+          emitAcc -= 1
+          const b = firstDead()
+          if (!b) break
+          spawn(b)
+        }
+      }
+
+      // Physics — straight down, just gravity.
       const g = gravity()
       let onScreen = false
       for (let i = 0; i < beans.length; i++) {
         const b = beans[i]
+        if (!b.active) continue
         b.vy = Math.min(TERMINAL, b.vy + g * dt)
         b.x += b.vx * dt
         b.y += b.vy * dt
         b.rot += b.vrot * dt
-        if (b.y - b.len > height) {
-          // Respawn ONLY while hovering. On mouse-leave we just stop spawning;
-          // the beans already in flight keep falling and drain out the bottom.
-          if (hovering) resetBean(b, true, i)
-        }
-        if (b.y - b.len <= height) onScreen = true
+        if (b.y - b.len > height) b.active = false
+        else onScreen = true
       }
 
-      // Clear is cheap (memset).
       ctx!.setTransform(1, 0, 0, 1, 0, 0)
       ctx!.clearRect(0, 0, canvas.width, canvas.height)
-
-      if (mask) {
-        if (whole) {
-          // Reveal the entire glyph (single letters like the tilted hero O).
-          ctx!.setTransform(dpr, 0, 0, dpr, 0, 0)
-          for (let i = 0; i < beans.length; i++) drawBean(beans[i])
-          ctx!.setTransform(1, 0, 0, 1, 0, 0)
-          ctx!.globalCompositeOperation = 'destination-in'
-          ctx!.drawImage(mask, 0, 0)
-          ctx!.globalCompositeOperation = 'source-over'
-        } else {
-          // A thin "cloud" overhead at the cursor's x: rain falls straight
-          // down a vertical column, clipped to the glyphs — into the letter
-          // you're over, not the whole word.
-          const bandHalf = Math.max(24, fs * 0.24)
-          const bx = Math.max(0, Math.floor((pointer.x - bandHalf) * dpr))
-          const bw = Math.min(canvas.width - bx, Math.ceil(bandHalf * 2 * dpr))
-          if (bw > 0) {
-            ctx!.setTransform(dpr, 0, 0, dpr, 0, 0)
-            for (let i = 0; i < beans.length; i++) {
-              const b = beans[i]
-              if (Math.abs(b.x - pointer.x) > bandHalf + b.len) continue
-              drawBean(b)
-            }
-            ctx!.setTransform(1, 0, 0, 1, 0, 0)
-            ctx!.globalCompositeOperation = 'destination-in'
-            ctx!.drawImage(mask, bx, 0, bw, canvas.height, bx, 0, bw, canvas.height)
-            const gx0 = (pointer.x - bandHalf) * dpr
-            const gx1 = (pointer.x + bandHalf) * dpr
-            const grad = ctx!.createLinearGradient(gx0, 0, gx1, 0)
-            grad.addColorStop(0, 'rgba(0,0,0,0)')
-            grad.addColorStop(0.3, 'rgba(0,0,0,1)')
-            grad.addColorStop(0.7, 'rgba(0,0,0,1)')
-            grad.addColorStop(1, 'rgba(0,0,0,0)')
-            ctx!.fillStyle = grad
-            ctx!.fillRect(bx, 0, bw, canvas.height)
-            ctx!.globalCompositeOperation = 'source-over'
-          }
+      if (mask && onScreen) {
+        ctx!.setTransform(dpr, 0, 0, dpr, 0, 0)
+        for (let i = 0; i < beans.length; i++) {
+          if (beans[i].active) drawBean(beans[i])
         }
+        ctx!.setTransform(1, 0, 0, 1, 0, 0)
+        ctx!.globalCompositeOperation = 'destination-in'
+        ctx!.drawImage(mask, 0, 0)
+        ctx!.globalCompositeOperation = 'source-over'
       }
 
-      // Keep animating while spawning (hover) or while drops are still draining.
       if (hovering || onScreen) {
         raf = requestAnimationFrame(frame)
       } else {
@@ -243,6 +227,12 @@ export function BeanRain({
       }
     }
 
+    function ensureRunning() {
+      if (!raf) {
+        lastT = performance.now()
+        raf = requestAnimationFrame(frame)
+      }
+    }
     function onMove(e: MouseEvent) {
       pointer.x = e.clientX - host.getBoundingClientRect().left
     }
@@ -250,12 +240,9 @@ export function BeanRain({
       hovering = true
       fs = parseFloat(getComputedStyle(host).fontSize) || 48
       onMove(e)
-      seed() // refill (in case a prior drain emptied the field)
       buildMask()
-      if (!raf) {
-        lastT = performance.now()
-        raf = requestAnimationFrame(frame)
-      }
+      prime()
+      ensureRunning()
     }
     function onLeave() {
       hovering = false
