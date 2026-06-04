@@ -469,7 +469,7 @@ function Home() {
       <section
         id="visit"
         ref={barRef}
-        className="scroll-mt-24 relative flex min-h-[90vh] items-end overflow-hidden"
+        className="scroll-mt-24 relative mt-32 flex min-h-[84vh] items-end overflow-hidden md:mt-48"
       >
         {/* Looping boomerang video of the bar (forward+reverse, so it never
             jumps), parallaxed. Muted/inline/autoplay → treated as decoration
@@ -491,31 +491,33 @@ function Home() {
             <source src="/bar.mp4" type="video/mp4" />
           </video>
         </motion.div>
-        {/* Film grain — a resolution-independent SVG noise (renders sharp at
-            device pixels), so the upscaled video's softness reads as filmic
-            texture even on retina / full-HD rather than as low-res blur. */}
-        <div
-          aria-hidden
-          className="absolute inset-0 opacity-[0.22] mix-blend-overlay"
-          style={{
-            backgroundImage:
-              "url(\"data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='120'%20height='120'%3E%3Cfilter%20id='n'%3E%3CfeTurbulence%20type='fractalNoise'%20baseFrequency='0.92'%20numOctaves='3'%20stitchTiles='stitch'/%3E%3C/filter%3E%3Crect%20width='100%25'%20height='100%25'%20filter='url(%23n)'/%3E%3C/svg%3E\")",
-            backgroundSize: '120px 120px',
-          }}
-        />
-        {/* legibility gradient — resolves to FULL background colour at the very
-            foot so the video dissolves seamlessly into the footer (no hard
-            cut). */}
+        {/* Black appears ONLY at the foot: the gradient is fully transparent
+            across the top ~30% (video stays clean) and resolves to the page
+            background at the very bottom, so the video dissolves DOWN into the
+            footer. The page-colour whitespace above (section margin) needs no
+            paint here. */}
         <div
           aria-hidden
           className="absolute inset-0"
           style={{
             backgroundImage:
-              'linear-gradient(0deg, rgba(11,9,8,1) 0%, rgba(11,9,8,0.92) 10%, rgba(11,9,8,0.5) 44%, rgba(11,9,8,0.12) 100%)',
+              'linear-gradient(0deg, rgba(11,9,8,1) 0%, rgba(11,9,8,0.88) 14%, rgba(11,9,8,0.42) 42%, rgba(11,9,8,0) 72%)',
+          }}
+        />
+        {/* Film grain ON TOP of everything (after the gradient) so it's always
+            visible — resolution-independent SVG noise, sharp at device pixels,
+            making the upscaled video read as filmic texture, not low-res blur. */}
+        <div
+          aria-hidden
+          className="absolute inset-0 opacity-[0.28] mix-blend-overlay"
+          style={{
+            backgroundImage:
+              "url(\"data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='120'%20height='120'%3E%3Cfilter%20id='n'%3E%3CfeTurbulence%20type='fractalNoise'%20baseFrequency='0.9'%20numOctaves='3'%20stitchTiles='stitch'/%3E%3C/filter%3E%3Crect%20width='100%25'%20height='100%25'%20filter='url(%23n)'/%3E%3C/svg%3E\")",
+            backgroundSize: '120px 120px',
           }}
         />
 
-        <span className="absolute left-6 top-8 z-10 font-mono text-[11px] tracking-[0.2em] text-cream/55 md:left-14">
+        <span className="absolute left-6 top-8 z-10 font-mono text-[11px] tracking-[0.2em] text-cream/70 md:left-14 [text-shadow:0_1px_10px_rgba(0,0,0,0.7)]">
           THE BAR · KUBELÍKOVA
         </span>
 
