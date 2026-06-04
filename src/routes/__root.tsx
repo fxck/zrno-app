@@ -10,6 +10,29 @@ import { motion, useReducedMotion } from 'motion/react'
 
 import appCss from '../styles.css?url'
 import { EASE_OUT } from '../components/motion-primitives'
+import { SiteHeader } from '../components/site-header'
+
+/* The shared public header is rendered ONCE here, outside the page-fade
+ * wrapper, so it persists across navigations — it never remounts or fades, so
+ * switching e.g. home ⇄ order no longer flashes the (translucent) bar. Props
+ * are derived from the path. Routes that own their chrome (admin → AdminShell,
+ * the /o receipt) return null and get no shared header. */
+type HeaderCfg = React.ComponentProps<typeof SiteHeader>
+function headerConfig(pathname: string): HeaderCfg | null {
+  if (pathname === '/') return { variant: 'home' }
+  if (pathname === '/order')
+    return { variant: 'page', back: true, backTo: '/', backLabel: '← BACK' }
+  if (pathname === '/journal')
+    return { variant: 'page', back: true, backTo: '/', backLabel: '← BACK TO SITE' }
+  if (pathname.startsWith('/journal/'))
+    return {
+      variant: 'page',
+      back: true,
+      backTo: '/journal',
+      backLabel: '← THE JOURNAL',
+    }
+  return null
+}
 
 // useLayoutEffect warns on the server; pick the right one per environment so
 // the scroll reset lands before paint on the client without the SSR noise.
@@ -104,15 +127,22 @@ function RootLayout() {
   // doesn't re-fade — the back-office app bar stays static.
   const section = '/' + (pathname.split('/')[1] ?? '')
 
+  // Persistent shared header sits OUTSIDE the keyed fade, so it never fades
+  // in/out across navigations (that translucent fade was the "flash").
+  const header = headerConfig(pathname)
+
   return (
-    <motion.div
-      key={section}
-      initial={animateThisPage ? { opacity: 0 } : false}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.3, ease: EASE_OUT }}
-    >
-      <Outlet />
-    </motion.div>
+    <>
+      {header && <SiteHeader {...header} />}
+      <motion.div
+        key={section}
+        initial={animateThisPage ? { opacity: 0 } : false}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3, ease: EASE_OUT }}
+      >
+        <Outlet />
+      </motion.div>
+    </>
   )
 }
 

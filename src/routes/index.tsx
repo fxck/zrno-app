@@ -9,7 +9,6 @@ import {
 } from 'motion/react'
 import { MENU } from '../lib/menu'
 import { useCart } from '../lib/cart'
-import { SiteHeader } from '../components/site-header'
 import { Wordmark, BeanO } from '../components/bean-mark'
 import { MenuAddControl } from '../components/menu-add-control'
 import {
@@ -100,8 +99,6 @@ function Home() {
 
   return (
     <div className="font-body bg-espresso text-cream">
-      <SiteHeader variant="home" />
-
       {/* HERO */}
       <section
         id="top"

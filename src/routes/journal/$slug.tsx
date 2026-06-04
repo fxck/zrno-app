@@ -1,6 +1,5 @@
 import { createFileRoute, redirect, Link } from '@tanstack/react-router'
 import { getPublishedPostBySlug } from '../../lib/server/blog'
-import { SiteHeader } from '../../components/site-header'
 
 // SAME stylesheet the editor imports — guarantees the published article is a
 // 1:1 match of the editing canvas.
@@ -38,8 +37,6 @@ function Article() {
 
   return (
     <div className="min-h-screen bg-espresso text-cream font-body">
-      <SiteHeader variant="page" back backTo="/journal" backLabel="← THE JOURNAL" />
-
       <article className="px-6 md:px-12 pb-28">
         {/* Title block shares the article reading column. */}
         <header className="max-w-[680px] mx-auto pt-16 md:pt-24 text-center">

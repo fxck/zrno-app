@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { listPublishedPosts, type PostListItem } from '../../lib/server/blog'
-import { SiteHeader } from '../../components/site-header'
 
 export const Route = createFileRoute('/journal/')({
   loader: async () => {
@@ -33,8 +32,6 @@ function JournalIndex() {
 
   return (
     <div className="min-h-screen bg-espresso text-cream font-body">
-      <SiteHeader variant="page" back backTo="/" backLabel="← BACK TO SITE" />
-
       <main className="px-6 md:px-12">
         <section className="max-w-6xl mx-auto pt-16 md:pt-24 pb-12">
           <div className="font-mono text-xs tracking-[0.25em] text-amber uppercase">The ZRNO</div>

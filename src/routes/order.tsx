@@ -6,7 +6,6 @@ import { useCart, cartSummary, setQty, removeItem, clearCart } from '../lib/cart
 import { Button } from '../components/ui/button'
 import { Input, Label } from '../components/ui/input'
 import { MenuAddControl } from '../components/menu-add-control'
-import { SiteHeader } from '../components/site-header'
 import { getPaymentMode } from '../lib/server/payment-mode'
 import { EASE_OUT, MaskedLines } from '../components/motion-primitives'
 import { BeanRain } from '../components/bean-rain'
@@ -128,7 +127,6 @@ function OrderPage() {
 
   return (
     <div className="min-h-screen bg-espresso text-cream font-body">
-      <SiteHeader variant="page" back />
 
       {done ? (
         <Confirmation result={done} stripeOn={stripeOn} />
