@@ -19,7 +19,7 @@ function AdminSubscribers() {
   if (!data.authed) return null
 
   return (
-    <AdminShell email={data.user.email} title="SUBSCRIBERS">
+    <AdminShell email={data.user.email}>
       <div className="flex items-end justify-between mb-6">
         <h1 className="font-display text-4xl">SUBSCRIBERS</h1>
         <span className="font-mono text-[11px] text-muted">

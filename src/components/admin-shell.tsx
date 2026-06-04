@@ -13,23 +13,20 @@ import { Button } from './ui/button'
  * Security all share identical geometry and navigation.
  * ------------------------------------------------------------------ */
 
+// Shop sections only. "Security" is account-level (lives next to the user).
 const NAV = [
   { label: 'Dashboard', to: '/admin/dashboard' },
   { label: 'Orders', to: '/admin/orders' },
   { label: 'Subscribers', to: '/admin/subscribers' },
   { label: 'Journal', to: '/admin/journal' },
-  { label: 'Security', to: '/admin/security' },
 ] as const
 
 export function AdminShell({
   email,
-  title,
   actions,
   children,
 }: {
   email?: string
-  /** short section label shown beside the wordmark */
-  title?: string
   /** right-aligned page actions (e.g. "New post") */
   actions?: ReactNode
   children: ReactNode
@@ -51,19 +48,35 @@ export function AdminShell({
               <Wordmark className="text-xl text-cream" />
             </Link>
             <span className="font-mono text-[11px] tracking-[0.2em] text-taupe">
-              {title ?? 'BACK OFFICE'}
+              BACK OFFICE
             </span>
           </div>
+          {/* Account cluster — the user + their account-level controls
+              (security) + sign-out, kept distinct from the shop nav below. */}
           <div className="flex items-center gap-4">
             {actions}
-            {email && (
-              <span className="font-mono text-[11px] text-muted hidden md:inline">
-                {email}
-              </span>
-            )}
-            <Button variant="ghost" size="sm" onClick={logout}>
-              Sign out
-            </Button>
+            <div className="flex items-center gap-3 border-l border-muted/15 pl-4">
+              {email && (
+                <span className="font-mono text-[11px] text-muted hidden md:inline">
+                  {email}
+                </span>
+              )}
+              <Link
+                to="/admin/security"
+                aria-label="Account security"
+                className={[
+                  'font-mono text-[11px] tracking-[0.18em] uppercase transition-colors',
+                  pathname.startsWith('/admin/security')
+                    ? 'text-cream'
+                    : 'text-taupe hover:text-cream',
+                ].join(' ')}
+              >
+                Security
+              </Link>
+              <Button variant="ghost" size="sm" onClick={logout}>
+                Sign out
+              </Button>
+            </div>
           </div>
         </div>
         <nav className="flex items-center gap-1 overflow-x-auto px-4 md:px-10 -mb-px">

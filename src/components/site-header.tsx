@@ -22,8 +22,7 @@ import {
 
 const SECTIONS = [
   { label: 'Menu', id: 'menu' },
-  { label: 'Story', id: 'story' },
-  { label: 'Roastery', id: 'roastery' },
+  { label: 'Roastery', id: 'story' },
   { label: 'Visit', id: 'visit' },
 ] as const
 

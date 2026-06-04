@@ -10,13 +10,11 @@ import {
 import { MENU } from '../lib/menu'
 import { useCart } from '../lib/cart'
 import { SiteHeader } from '../components/site-header'
-import { Wordmark } from '../components/bean-mark'
+import { Wordmark, BeanMark } from '../components/bean-mark'
 import { MenuAddControl } from '../components/menu-add-control'
 import {
-  BeanfallText,
   EASE_OUT,
   Marquee,
-  MaskedLines,
   Reveal,
   ScrollProgress,
   SOFT_SPRING,
@@ -24,6 +22,7 @@ import {
   useParallaxY,
   usePointerFine,
 } from '../components/motion-primitives'
+import { BeanRain } from '../components/bean-rain'
 
 export const Route = createFileRoute('/')({ component: Home })
 
@@ -153,16 +152,36 @@ function Home() {
               unmistakably ours.
             </motion.p>
             <h1 className="font-display t-hero px-6 md:px-14 mt-4 md:mt-6 pb-[2vh] select-none">
-              {/* No overflow mask at t-hero size: with line-height 0.78 a mask
-                  shaves the caps top & bottom. A plain fade + rise shows the
-                  full glyph and never clips. */}
+              {/* ZRN carries the bean-rain on hover; the O is the angled
+                  bean mark itself, tipping in and gently wiggling forever. */}
               <motion.span
-                className="block"
+                className="inline-flex items-baseline"
                 initial={reduce ? false : { opacity: 0, y: '0.1em' }}
                 animate={reduce ? {} : { opacity: 1, y: 0 }}
                 transition={{ duration: 1.1, ease: EASE_OUT, delay: 0.4 }}
               >
-                ZRNO
+                <BeanRain lines={['ZRN']} />
+                {reduce ? (
+                  <BeanMark className="inline-block h-[0.82em] w-[0.64em] ml-[0.02em]" />
+                ) : (
+                  <motion.span
+                    className="inline-block"
+                    style={{ transformOrigin: '50% 52%' }}
+                    initial={{ rotate: -8 }}
+                    animate={{ rotate: [18, 13, 18] }}
+                    transition={{
+                      duration: 5.5,
+                      ease: 'easeInOut',
+                      repeat: Infinity,
+                      delay: 0.5,
+                    }}
+                  >
+                    <BeanMark
+                      angle={0}
+                      className="inline-block h-[0.82em] w-[0.64em] ml-[0.02em]"
+                    />
+                  </motion.span>
+                )}
               </motion.span>
             </h1>
           </div>
@@ -184,11 +203,7 @@ function Home() {
           OUR PHILOSOPHY
         </Reveal>
         <h2 className="font-display t-xl mt-10">
-          <BeanfallText
-            lines={['BREWED FOR', <span className="text-amber">THE BOLD.</span>]}
-            clip={['BREWED FOR', 'THE BOLD.']}
-            stagger={0.14}
-          />
+          <BeanRain lines={['BREWED FOR', { text: 'THE BOLD.', accent: true }]} />
         </h2>
       </section>
 
@@ -202,7 +217,9 @@ function Home() {
             <div className="font-mono text-xs tracking-[0.2em] text-amber">
               WHAT WE POUR
             </div>
-            <h2 className="font-display t-lg mt-4">THE MENU</h2>
+            <h2 className="font-display t-lg mt-4">
+              <BeanRain lines={['THE MENU']} />
+            </h2>
           </div>
           <div className="font-mono text-xs tracking-wide text-taupe">
             PRICES IN Kč · ADD TO YOUR ORDER
@@ -219,12 +236,13 @@ function Home() {
               viewport={{ once: true, amount: 0.4 }}
               transition={{ duration: 0.7, ease: EASE_OUT, delay: Math.min(i * 0.06, 0.3) }}
             >
-              <div className="flex items-center justify-between gap-5 py-6 md:py-7">
+              <div className="group/row flex items-center justify-between gap-5 py-6 md:py-7">
                 <div className="flex items-end gap-5 flex-wrap min-w-0">
-                  <span className="font-display text-3xl md:text-5xl leading-none text-cream">
-                    {it.name.toUpperCase()}
-                  </span>
-                  <span className="hidden sm:block text-sm text-taupe mb-1 max-w-xs">
+                  <BeanRain
+                    lines={[it.name.toUpperCase()]}
+                    className="font-display text-3xl md:text-5xl leading-none text-cream transition-transform duration-[600ms] ease-[cubic-bezier(0.33,0,0.2,1)] group-hover/row:translate-x-2"
+                  />
+                  <span className="hidden sm:block text-sm text-taupe mb-1 max-w-xs transition-colors duration-[600ms] ease-[cubic-bezier(0.33,0,0.2,1)] group-hover/row:text-cream">
                     {it.desc}
                   </span>
                 </div>
@@ -420,7 +438,7 @@ function Home() {
           <Reveal as="div">
             <div className="font-mono text-xs tracking-[0.2em] text-amber">FIND US</div>
             <h2 className="font-display t-md mt-4">
-              <BeanfallText lines={['VISIT THE BAR']} duration={0.85} />
+              <BeanRain lines={['VISIT THE BAR']} />
             </h2>
           </Reveal>
           <Reveal
@@ -451,7 +469,7 @@ function Home() {
       <footer className="px-6 md:px-14 pt-28 md:pt-40 pb-10">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-12">
           <h2 className="font-display t-xl">
-            <BeanfallText lines={['STAY', 'CAFFEINATED.']} stagger={0.14} />
+            <BeanRain lines={['STAY', 'CAFFEINATED.']} />
           </h2>
           <Reveal as="div" className="max-w-md w-full" delay={0.1}>
             <p className="text-taupe leading-relaxed">

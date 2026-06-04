@@ -9,6 +9,8 @@ import { MenuAddControl } from '../components/menu-add-control'
 import { SiteHeader } from '../components/site-header'
 import { getPaymentMode } from '../lib/server/payment-mode'
 import { EASE_OUT, MaskedLines } from '../components/motion-primitives'
+import { BeanRain } from '../components/bean-rain'
+import { Wordmark } from '../components/bean-mark'
 
 export const Route = createFileRoute('/order')({
   validateSearch: (s: Record<string, unknown>) => ({
@@ -155,7 +157,7 @@ function OrderPage() {
               {MENU.map((m, i) => (
                 <motion.div
                   key={m.id}
-                  className="flex items-center justify-between gap-4 border-t border-muted/15 py-5"
+                  className="group/row flex items-center justify-between gap-4 border-t border-muted/15 py-5"
                   initial={reduce ? false : { opacity: 0, y: 12 }}
                   animate={reduce ? {} : { opacity: 1, y: 0 }}
                   transition={{
@@ -389,55 +391,86 @@ function Confirmation({ result, stripeOn }: { result: OrderResult; stripeOn: boo
   }, [result.orderId])
 
   return (
-    <main className="px-6 md:px-14 py-24 max-w-2xl">
-      <div className="font-mono text-xs tracking-[0.2em] text-amber">
+    <main className="px-6 md:px-14 py-20 md:py-28 max-w-3xl mx-auto">
+      <div className="text-center font-mono text-xs tracking-[0.3em] text-amber">
         ORDER {stripeOn ? result.status.toUpperCase() : 'CONFIRMED'}
       </div>
-      <h1 className="font-display t-lg mt-3">
-        <MaskedLines lines={['THANK YOU.']} trigger="mount" />
+      <h1 className="font-display t-lg mt-4 text-center">
+        <BeanRain lines={['THANK YOU.']} />
       </h1>
-      <p className="text-taupe mt-6 leading-relaxed max-w-md">
+      <p className="text-taupe mt-6 leading-relaxed text-center max-w-md mx-auto">
         Order <span className="text-cream">#{result.orderId.slice(0, 8)}</span>{' '}
-        {stripeOn ? 'is paid' : 'is confirmed'}. We’ve sent a confirmation email.{' '}
-        {stripeOn ? 'Total charged:' : 'Order total:'}{' '}
-        <span className="text-amber">{result.total} Kč</span>.
+        {stripeOn ? 'is paid' : 'is confirmed'}. We’ve sent a confirmation email.
       </p>
 
-      {/* QR → permanent order link. Cream card so the code stays scannable. */}
-      <div className="mt-10 flex flex-col sm:flex-row sm:items-center gap-6 border border-muted/20 bg-surface p-5 md:p-6">
-        <div className="shrink-0 rounded-md bg-cream p-3">
-          {qr ? (
-            <img
-              src={qr}
-              alt="QR code linking to your order"
-              width={120}
-              height={120}
-              className="h-[120px] w-[120px]"
-            />
-          ) : (
-            <div className="h-[120px] w-[120px] animate-pulse rounded bg-muted/30" />
-          )}
-        </div>
-        <div className="min-w-0">
-          <div className="font-mono text-[11px] tracking-[0.2em] text-amber">
-            YOUR ORDER PASS
+      {/* The order pass — a ticket. QR up top on a cream tile, a perforated
+          tear line, then the stub with order + total. Show it at the bar. */}
+      <motion.div
+        className="mt-12 mx-auto max-w-sm"
+        initial={reduce ? false : { opacity: 0, y: 18, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.7, ease: EASE_OUT, delay: 0.15 }}
+      >
+        <div className="relative overflow-hidden rounded-2xl border border-amber/25 bg-surface shadow-[0_30px_80px_-30px_rgba(0,0,0,0.9)]">
+          <div className="flex items-center justify-between px-6 pt-6">
+            <Wordmark className="text-lg text-cream" />
+            <span className="font-mono text-[10px] tracking-[0.28em] text-amber">
+              ORDER PASS
+            </span>
           </div>
-          <p className="text-taupe text-sm mt-2 leading-relaxed">
-            Scan or save this to pull up your order anytime. Show it at the bar
-            to collect.
-          </p>
-          {orderUrl && (
-            <a
-              href={orderUrl}
-              className="zrno-underline relative mt-3 inline-block break-all font-mono text-[11px] text-cream"
-            >
-              {orderUrl.replace(/^https?:\/\//, '')}
-            </a>
-          )}
-        </div>
-      </div>
 
-      <div className="flex gap-4 mt-10">
+          <div className="flex justify-center px-6 py-8">
+            <div className="rounded-xl bg-cream p-4 shadow-[0_12px_30px_-12px_rgba(0,0,0,0.6)]">
+              {qr ? (
+                <img
+                  src={qr}
+                  alt="QR code linking to your order"
+                  width={168}
+                  height={168}
+                  className="h-[168px] w-[168px]"
+                />
+              ) : (
+                <div className="h-[168px] w-[168px] animate-pulse rounded bg-muted/30" />
+              )}
+            </div>
+          </div>
+
+          {/* Perforated tear line with punched notches on each edge. */}
+          <div className="relative">
+            <div className="mx-6 border-t border-dashed border-muted/40" />
+            <span className="absolute -left-3 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-espresso" />
+            <span className="absolute -right-3 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-espresso" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 px-6 py-6 font-mono">
+            <div>
+              <div className="text-[10px] tracking-[0.2em] text-muted">ORDER</div>
+              <div className="mt-1 text-sm text-cream">
+                #{result.orderId.slice(0, 8)}
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-[10px] tracking-[0.2em] text-muted">TOTAL</div>
+              <div className="mt-1 text-sm text-amber tabular-nums">
+                {result.total} Kč
+              </div>
+            </div>
+            {orderUrl && (
+              <a
+                href={orderUrl}
+                className="col-span-2 mt-1 break-all text-[11px] leading-relaxed text-taupe hover:text-cream transition-colors"
+              >
+                {orderUrl.replace(/^https?:\/\//, '')}
+              </a>
+            )}
+          </div>
+        </div>
+        <p className="mt-4 text-center text-xs text-muted">
+          Scan to pull up your order · show it at the bar to collect.
+        </p>
+      </motion.div>
+
+      <div className="flex gap-4 mt-12 justify-center">
         <Link to="/">
           <Button variant="outline">Back to site</Button>
         </Link>

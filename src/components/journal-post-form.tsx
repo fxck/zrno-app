@@ -1,8 +1,9 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
-import { Link, useRouter } from '@tanstack/react-router'
+import { useRouter } from '@tanstack/react-router'
 import { savePost, type Post } from '../lib/server/blog'
 import { ImagePlus } from 'lucide-react'
 import { uploadImageFile, ACCEPT_IMAGE } from '../lib/upload-client'
+import { AdminShell } from './admin-shell'
 import { Button } from './ui/button'
 import { Input, Label } from './ui/input'
 
@@ -112,18 +113,13 @@ export default function JournalPostForm({ post }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-espresso text-cream font-body">
-      <header className="sticky top-0 z-20 flex items-center justify-between gap-4 px-6 md:px-12 py-4 border-b border-muted/15 bg-espresso/95 backdrop-blur">
-        <div className="flex items-baseline gap-4 min-w-0">
-          <Link to="/admin/journal" className="font-mono text-[11px] tracking-[0.18em] uppercase text-taupe hover:text-cream transition-colors whitespace-nowrap">
-            ← Journal
-          </Link>
-          <span className="font-mono text-[11px] text-muted truncate">
+    <AdminShell
+      actions={
+        <div className="flex items-center gap-3">
+          <span className="font-mono text-[11px] text-muted truncate hidden sm:inline">
             {isEdit ? `Editing · ${post?.status}` : 'New post'}
             {savedAt && <span className="text-amber"> · saved {savedAt}</span>}
           </span>
-        </div>
-        <div className="flex items-center gap-3">
           <Button
             variant="outline"
             size="sm"
@@ -136,10 +132,9 @@ export default function JournalPostForm({ post }: Props) {
             {busy === 'publish' ? 'Publishing…' : 'Publish'}
           </Button>
         </div>
-      </header>
-
-      <main className="px-6 md:px-12 py-10">
-        <div className="max-w-3xl mx-auto space-y-10">
+      }
+    >
+      <div className="max-w-3xl mx-auto space-y-10">
           {error && (
             <p className="rounded-md bg-red-500/10 text-red-400 text-sm px-4 py-3 border border-red-500/20">
               {error}
@@ -247,7 +242,6 @@ export default function JournalPostForm({ post }: Props) {
             <JournalEditor value={html} onChange={setHtml} />
           </Suspense>
         </div>
-      </main>
-    </div>
+    </AdminShell>
   )
 }

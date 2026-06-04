@@ -38,7 +38,7 @@ function Security() {
   const { user } = Route.useLoaderData()
 
   return (
-    <AdminShell email={user.email} title="SECURITY">
+    <AdminShell email={user.email}>
       <div className="max-w-2xl mx-auto space-y-12">
         <div>
           <div className="font-mono text-xs tracking-[0.2em] text-amber uppercase">Account</div>

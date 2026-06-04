@@ -46,7 +46,6 @@ function AdminJournalList() {
 
   return (
     <AdminShell
-      title="JOURNAL"
       actions={
         <Link to="/admin/journal/new">
           <Button size="sm">New post</Button>

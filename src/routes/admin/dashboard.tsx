@@ -26,7 +26,7 @@ function Dashboard() {
   const recentSubs = data.subscribers.slice(0, 6)
 
   return (
-    <AdminShell email={data.user.email} title="OVERVIEW">
+    <AdminShell email={data.user.email}>
       <div className="space-y-10">
         <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <Card>
