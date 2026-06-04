@@ -78,9 +78,8 @@ function AdminJournalList() {
         </Link>
       }
     >
-      <div className="flex items-end justify-between mb-6">
+      <div className="mb-6">
         <h1 className="font-display text-4xl">POSTS</h1>
-        <span className="font-mono text-[11px] text-muted">{data.posts.length} total</span>
       </div>
 
       {data.posts.length > 0 && (

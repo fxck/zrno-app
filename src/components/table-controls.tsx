@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { TH } from './ui/table'
+import { Select } from './ui/select'
 
 /* ------------------------------------------------------------------ *
  * Table controls — instant, client-side search / filter / sort.
@@ -139,21 +140,14 @@ export function TableToolbar<T>({
       </div>
 
       {controls.filters.map((f) => (
-        <label key={f.key} className="flex items-center">
-          <span className="sr-only">{f.label}</span>
-          <select
-            value={controls.filterValues[f.key]}
-            onChange={(e) => controls.setFilter(f.key, e.target.value)}
-            className="h-9 rounded-md border border-muted/20 bg-elevated px-3 font-mono text-[11px] uppercase tracking-[0.1em] text-taupe outline-none transition-colors hover:text-cream focus:border-amber/50"
-          >
-            <option value="all">{f.label}: all</option>
-            {f.options.map((o) => (
-              <option key={o.value} value={o.value}>
-                {f.label}: {o.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        <Select
+          key={f.key}
+          ariaLabel={f.label}
+          prefix={f.label}
+          value={controls.filterValues[f.key]}
+          onChange={(v) => controls.setFilter(f.key, v)}
+          options={[{ value: 'all', label: 'All' }, ...f.options]}
+        />
       ))}
 
       <span className="ml-auto font-mono text-[11px] text-muted">

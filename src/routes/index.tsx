@@ -26,6 +26,9 @@ import { BeanRain } from '../components/bean-rain'
 
 export const Route = createFileRoute('/')({ component: Home })
 
+// Shared "béchamel" easing (slow, smooth) for the menu hover microinteractions.
+const EASE_BECHAMEL = 'ease-[cubic-bezier(0.33,0,0.2,1)]'
+
 const DETAILS = [
   { h: 'Address', lines: ['Kubelíkova 22', '130 00 Praha 3', 'Žižkov'] },
   { h: 'Hours', lines: ['Mon–Fri  7:00–19:00', 'Sat–Sun  8:00–18:00'] },
@@ -157,30 +160,60 @@ function Home() {
               {/* ZRN rains per-letter under the cursor cloud; the O is its
                   own rain field, tipped to the bean angle (glyph + canvas
                   rotate together so the clip stays aligned) and it rains too. */}
-              <motion.span
-                className="inline-flex items-baseline"
-                initial={reduce ? false : { opacity: 0, y: '0.1em' }}
-                animate={reduce ? {} : { opacity: 1, y: 0 }}
-                transition={{ duration: 1.1, ease: EASE_OUT, delay: 0.4 }}
-              >
-                <BeanRain lines={['ZRN']} />
+              <span className="inline-flex items-baseline">
+                {/* Z, R, N pop in one by one with a springy overshoot; beans
+                    scaled down so they don't read chunky at hero size. */}
+                <BeanRain
+                  lines={['ZRN']}
+                  pop
+                  popDelay={0.45}
+                  popStagger={0.15}
+                  beanScale={0.6}
+                />
                 {reduce ? (
-                  <BeanRain lines={['O']} whole rotate={18} className="ml-[0.02em]" />
+                  <BeanRain
+                    lines={['O']}
+                    whole
+                    rotate={18}
+                    beanScale={0.6}
+                    className="ml-[0.02em]"
+                  />
                 ) : (
-                  // Wrapper tips the O from upright → leaning on load (bottom
-                  // pivot). At rest the wrapper is 0°, so the canvas is upright
-                  // and the rain falls straight down inside the tilted O.
+                  // The O pops in upright (last in the sequence), then — a beat
+                  // later — wobbles into its bean lean on a springy rotate with
+                  // real overshoot/settle (low damping = a couple of wobbles).
+                  // Pop (scale) and wobble (rotate) are separate layers so they
+                  // don't fight; bottom-centre pivot keeps the rain upright.
                   <motion.span
                     className="ml-[0.02em] inline-block"
-                    style={{ transformOrigin: '50% 100%' }}
-                    initial={{ rotate: -18 }}
-                    animate={{ rotate: 0 }}
-                    transition={{ duration: 0.9, ease: EASE_OUT, delay: 1.15 }}
+                    initial={{ scale: 0.25, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{
+                      type: 'spring',
+                      stiffness: 540,
+                      damping: 12,
+                      mass: 0.8,
+                      delay: 0.9,
+                    }}
                   >
-                    <BeanRain lines={['O']} whole rotate={18} />
+                    <motion.span
+                      className="inline-block"
+                      style={{ transformOrigin: '50% 100%' }}
+                      initial={{ rotate: -18 }}
+                      animate={{ rotate: 0 }}
+                      transition={{
+                        type: 'spring',
+                        stiffness: 130,
+                        damping: 7,
+                        mass: 0.9,
+                        delay: 1.25,
+                      }}
+                    >
+                      <BeanRain lines={['O']} whole rotate={18} beanScale={0.6} />
+                    </motion.span>
                   </motion.span>
                 )}
-              </motion.span>
+              </span>
             </h1>
           </div>
         </motion.div>
@@ -224,36 +257,61 @@ function Home() {
           </div>
         </Reveal>
 
-        <div className="mt-16 md:mt-24">
-          {MENU.map((it, i) => (
-            <motion.div
-              key={it.id}
-              className="border-t hairline"
-              initial={reduce ? false : { opacity: 0, y: 14 }}
-              whileInView={reduce ? {} : { opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.4 }}
-              transition={{ duration: 0.7, ease: EASE_OUT, delay: Math.min(i * 0.06, 0.3) }}
-            >
-              <div className="group/row flex items-center justify-between gap-5 py-7 md:py-9">
-                <div className="flex items-end gap-5 flex-wrap min-w-0">
-                  <BeanRain
-                    lines={[it.name.toUpperCase()]}
-                    className="font-display text-3xl md:text-5xl leading-none text-cream transition-transform duration-[600ms] ease-[cubic-bezier(0.33,0,0.2,1)] group-hover/row:translate-x-2"
+        {/* Rigid grid rows: a fixed min-height + items-center means the row can
+            NEVER change height when ADD ⇄ stepper morphs, and the control slot
+            is a fixed-width box so the centre never shifts horizontally either.
+            Everything else is hover microinteraction. */}
+        <div className="mt-16 md:mt-24 border-t hairline">
+          {MENU.map((it, i) => {
+            const ec = EASE_BECHAMEL
+            return (
+              <motion.div
+                key={it.id}
+                initial={reduce ? false : { opacity: 0, y: 14 }}
+                whileInView={reduce ? {} : { opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.4 }}
+                transition={{ duration: 0.7, ease: EASE_OUT, delay: Math.min(i * 0.06, 0.3) }}
+              >
+                <div className="group/row relative grid grid-cols-[1fr_auto] items-center gap-x-4 md:gap-x-10 min-h-[100px] md:min-h-[128px] border-b hairline overflow-hidden">
+                  {/* amber wash bleeding in from the right on hover */}
+                  <span
+                    aria-hidden
+                    className={`pointer-events-none absolute inset-y-0 right-0 w-2/3 bg-gradient-to-l from-amber/[0.06] to-transparent opacity-0 transition-opacity duration-700 ${ec} group-hover/row:opacity-100`}
                   />
-                  <span className="hidden sm:block text-sm text-taupe mb-1 max-w-xs transition-colors duration-[600ms] ease-[cubic-bezier(0.33,0,0.2,1)] group-hover/row:text-cream">
-                    {it.desc}
-                  </span>
+                  {/* left accent bar that grows from the centre on hover */}
+                  <span
+                    aria-hidden
+                    className={`pointer-events-none absolute left-0 top-1/2 w-[2px] h-0 -translate-y-1/2 bg-amber transition-[height] duration-500 ${ec} group-hover/row:h-1/2`}
+                  />
+
+                  {/* name + description */}
+                  <div
+                    className={`relative min-w-0 transition-transform duration-[650ms] ${ec} group-hover/row:translate-x-3 md:group-hover/row:translate-x-5`}
+                  >
+                    <BeanRain
+                      lines={[it.name.toUpperCase()]}
+                      className="font-display text-3xl md:text-5xl leading-none text-cream"
+                    />
+                    <span
+                      className={`mt-2 block max-w-sm text-sm text-taupe transition-colors duration-[650ms] ${ec} group-hover/row:text-cream/90`}
+                    >
+                      {it.desc}
+                    </span>
+                  </div>
+
+                  {/* price + add control */}
+                  <div className="relative flex items-center gap-4 md:gap-8">
+                    <span
+                      className={`font-display text-2xl md:text-4xl leading-none tabular-nums text-amber whitespace-nowrap transition-transform duration-[650ms] ${ec} group-hover/row:-translate-x-1`}
+                    >
+                      {it.price}
+                    </span>
+                    <MenuAddControl id={it.id} name={it.name} qty={cart[it.id] || 0} />
+                  </div>
                 </div>
-                <div className="flex items-center gap-4 md:gap-7 shrink-0">
-                  <span className="font-display text-2xl md:text-4xl text-amber leading-none whitespace-nowrap tabular-nums">
-                    {it.price}
-                  </span>
-                  <MenuAddControl id={it.id} name={it.name} qty={cart[it.id] || 0} />
-                </div>
-              </div>
-            </motion.div>
-          ))}
-          <div className="border-t hairline" />
+              </motion.div>
+            )
+          })}
         </div>
       </section>
 

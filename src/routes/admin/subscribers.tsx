@@ -35,11 +35,8 @@ function AdminSubscribers() {
 
   return (
     <AdminShell email={data.user.email}>
-      <div className="flex items-end justify-between mb-6">
+      <div className="mb-6">
         <h1 className="font-display text-4xl">SUBSCRIBERS</h1>
-        <span className="font-mono text-[11px] text-muted">
-          {data.subscribers.length} total
-        </span>
       </div>
 
       {data.subscribers.length > 0 && (

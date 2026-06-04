@@ -44,6 +44,10 @@ export function BeanRain({
   className,
   whole = false,
   rotate = 0,
+  pop = false,
+  popDelay = 0,
+  popStagger = 0.14,
+  beanScale = 1,
 }: {
   lines: Line[]
   className?: string
@@ -54,6 +58,17 @@ export function BeanRain({
       particle gravity vertical, so beans fall straight DOWN inside a tilted
       letter (the hero O) instead of along its lean */
   rotate?: number
+  /** orchestrated intro: pop each glyph in, one by one, with a springy
+      overshoot (used for the hero wordmark). Replaces the whileInView fade
+      for these lines. */
+  pop?: boolean
+  /** seconds before the FIRST glyph of this BeanRain pops in */
+  popDelay?: number
+  /** seconds between consecutive glyph pops */
+  popStagger?: number
+  /** multiply the bean particle size — turn it DOWN for very large headlines
+      (the hero) where default-scaled beans read as too chunky */
+  beanScale?: number
 }) {
   const reduce = useReducedMotion()
   const fine = usePointerFine()
@@ -78,6 +93,7 @@ export function BeanRain({
     const POOL = 180
     let width = 0
     let height = 0
+    let pad = 0 // canvas overscan so a rotated glyph's corners aren't clipped
     let fs = 48 // cached font size — refreshed on resize/enter, never per-frame
     const beans: Bean[] = Array.from({ length: POOL }, () => ({
       x: 0, y: 0, vx: 0, vy: 0, rot: 0, vrot: 0, len: 10, deep: false, active: false,
@@ -98,7 +114,8 @@ export function BeanRain({
 
     const rand = (a: number, b: number) => a + Math.random() * (b - a)
 
-    const beanLen = () => Math.max(11, Math.min(42, fs * 0.11)) * rand(0.8, 1.2)
+    const beanLen = () =>
+      Math.max(11, Math.min(42, fs * 0.11)) * beanScale * rand(0.8, 1.2)
     // Gentle gravity + low terminal velocity → a calm, steady fall.
     const gravity = () => Math.min(640, Math.max(240, fs * 0.8))
     const TERMINAL = 220
@@ -144,11 +161,12 @@ export function BeanRain({
     function buildMask() {
       if (width <= 0 || height <= 0) return
       const m = document.createElement('canvas')
-      m.width = Math.round(width * dpr)
-      m.height = Math.round(height * dpr)
+      m.width = Math.round((width + pad * 2) * dpr)
+      m.height = Math.round((height + pad * 2) * dpr)
       const mc = m.getContext('2d')
       if (!mc) return
       mc.scale(dpr, dpr)
+      mc.translate(pad, pad) // host-space (0,0) → padded canvas origin
       mc.fillStyle = '#fff'
       mc.textBaseline = 'alphabetic'
       host.querySelectorAll('[data-bean-line]').forEach((node) => {
@@ -189,8 +207,17 @@ export function BeanRain({
       width = host.clientWidth
       height = host.clientHeight
       fs = parseFloat(getComputedStyle(host).fontSize) || 48
-      canvas.width = Math.max(1, Math.round(width * dpr))
-      canvas.height = Math.max(1, Math.round(height * dpr))
+      // A rotated glyph overflows its layout box; overscan the canvas so beans
+      // in the tilted corners aren't sheared off mid-fall.
+      pad = rotate ? Math.ceil(fs * 0.7) : 0
+      const cw = width + pad * 2
+      const ch = height + pad * 2
+      canvas.width = Math.max(1, Math.round(cw * dpr))
+      canvas.height = Math.max(1, Math.round(ch * dpr))
+      canvas.style.left = -pad + 'px'
+      canvas.style.top = -pad + 'px'
+      canvas.style.width = cw + 'px'
+      canvas.style.height = ch + 'px'
       buildMask()
     }
 
@@ -235,7 +262,7 @@ export function BeanRain({
       ctx!.setTransform(1, 0, 0, 1, 0, 0)
       ctx!.clearRect(0, 0, canvas.width, canvas.height)
       if (mask && onScreen) {
-        ctx!.setTransform(dpr, 0, 0, dpr, 0, 0)
+        ctx!.setTransform(dpr, 0, 0, dpr, pad * dpr, pad * dpr)
         for (let i = 0; i < beans.length; i++) {
           if (beans[i].active) drawBean(beans[i])
         }
@@ -301,47 +328,77 @@ export function BeanRain({
       host.removeEventListener('mouseleave', onLeave)
       if (raf) cancelAnimationFrame(raf)
     }
-  }, [enabled, linesKey, whole, rotate])
+  }, [enabled, linesKey, whole, rotate, beanScale])
+
+  const usePop = pop && !reduce
+  let charBase = 0 // running glyph index across lines, for staggered pops
 
   return (
     <span ref={hostRef} className={'relative inline-block ' + (className ?? '')}>
       {lines.map((l, i) => {
         const text = typeof l === 'string' ? l : l.text
         const accent = typeof l === 'object' && l.accent
+        const start = charBase
+        charBase += text.length
+
+        // Pop each glyph in with a springy overshoot (transform-origin centre),
+        // staggered. Otherwise render the plain text node.
+        const inner = usePop
+          ? text.split('').map((ch, j) => (
+              <motion.span
+                key={j}
+                className="inline-block"
+                initial={{ scale: 0.25, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{
+                  type: 'spring',
+                  stiffness: 540,
+                  damping: 12,
+                  mass: 0.8,
+                  delay: popDelay + (start + j) * popStagger,
+                }}
+              >
+                {ch === ' ' ? ' ' : ch}
+              </motion.span>
+            ))
+          : text
+
+        const content = rotate ? (
+          <span
+            className="inline-block"
+            style={{
+              transform: `rotate(${rotate}deg)`,
+              transformOrigin: '50% 100%',
+            }}
+          >
+            {inner}
+          </span>
+        ) : (
+          inner
+        )
+
         return (
           <motion.span
             key={i}
             data-bean-line
             className={'block ' + (accent ? 'text-amber' : '')}
-            initial={reduce ? false : { opacity: 0, y: '0.18em' }}
-            whileInView={reduce ? {} : { opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.4 }}
-            transition={{
-              duration: 0.9,
-              ease: EASE_OUT,
-              delay: reduce ? 0 : i * 0.12,
-            }}
+            initial={usePop || reduce ? false : { opacity: 0, y: '0.18em' }}
+            whileInView={usePop || reduce ? undefined : { opacity: 1, y: 0 }}
+            viewport={usePop || reduce ? undefined : { once: true, amount: 0.4 }}
+            transition={
+              usePop || reduce
+                ? undefined
+                : { duration: 0.9, ease: EASE_OUT, delay: i * 0.12 }
+            }
           >
-            {rotate ? (
-              <span
-                className="inline-block"
-                style={{
-                  transform: `rotate(${rotate}deg)`,
-                  transformOrigin: '50% 100%',
-                }}
-              >
-                {text}
-              </span>
-            ) : (
-              text
-            )}
+            {content}
           </motion.span>
         )
       })}
       <canvas
         ref={canvasRef}
         aria-hidden
-        className="pointer-events-none absolute inset-0 h-full w-full"
+        className="pointer-events-none absolute left-0 top-0"
       />
     </span>
   )
