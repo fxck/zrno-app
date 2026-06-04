@@ -46,6 +46,12 @@ function Dashboard() {
           >
             Journal
           </Link>
+          <Link
+            to="/admin/security"
+            className="font-mono text-[11px] tracking-[0.18em] uppercase text-taupe hover:text-cream transition-colors"
+          >
+            Security
+          </Link>
           <span className="font-mono text-[11px] text-muted hidden sm:inline">{data.user.email}</span>
           <Button variant="ghost" size="sm" onClick={logout}>
             Sign out

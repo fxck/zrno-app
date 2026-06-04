@@ -12,6 +12,7 @@ function AdminLogin() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [pkBusy, setPkBusy] = useState(false)
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -21,6 +22,20 @@ function AdminLogin() {
     setBusy(false)
     if (error) {
       setError(error.message || 'Invalid credentials.')
+      return
+    }
+    router.navigate({ to: '/admin/dashboard' })
+  }
+
+  async function signInWithPasskey() {
+    setPkBusy(true)
+    setError('')
+    // Triggers the browser's WebAuthn ceremony; resolves with an error on
+    // cancel or if no passkey is registered for this site.
+    const res = await authClient.signIn.passkey()
+    setPkBusy(false)
+    if (res?.error) {
+      setError(res.error.message || 'No passkey available for this site.')
       return
     }
     router.navigate({ to: '/admin/dashboard' })
@@ -51,6 +66,23 @@ function AdminLogin() {
               {busy ? 'Signing in…' : 'Sign in'}
             </Button>
           </form>
+
+          <div className="flex items-center gap-3 my-6 text-[11px] font-mono tracking-[0.2em] text-muted">
+            <span className="h-px flex-1 bg-muted/20" />
+            OR
+            <span className="h-px flex-1 bg-muted/20" />
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            className="w-full"
+            onClick={signInWithPasskey}
+            disabled={pkBusy}
+          >
+            {pkBusy ? 'Waiting for device…' : 'Sign in with a passkey'}
+          </Button>
         </div>
       </main>
     </div>

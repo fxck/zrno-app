@@ -54,3 +54,13 @@ export const getDashboard = createServerFn({ method: 'GET' }).handler(async () =
     },
   }
 })
+
+// Lightweight session gate for admin pages that only need "are we the
+// logged-in admin?" (account / security), without the dashboard payload.
+export const getAdminSession = createServerFn({ method: 'GET' }).handler(async () => {
+  await ensureDb()
+  const request = getRequest()
+  const session = await auth.api.getSession({ headers: request.headers })
+  if (!session?.user) return { authed: false as const }
+  return { authed: true as const, user: { email: session.user.email } }
+})

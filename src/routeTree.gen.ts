@@ -17,6 +17,7 @@ import { Route as JournalSlugRouteImport } from './routes/journal/$slug'
 import { Route as ApiUploadRouteImport } from './routes/api/upload'
 import { Route as ApiSubscribeRouteImport } from './routes/api/subscribe'
 import { Route as ApiOrdersRouteImport } from './routes/api/orders'
+import { Route as AdminSecurityRouteImport } from './routes/admin/security'
 import { Route as AdminDashboardRouteImport } from './routes/admin/dashboard'
 import { Route as AdminJournalIndexRouteImport } from './routes/admin/journal/index'
 import { Route as ApiStripeWebhookRouteImport } from './routes/api/stripe/webhook'
@@ -65,6 +66,11 @@ const ApiOrdersRoute = ApiOrdersRouteImport.update({
   path: '/api/orders',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminSecurityRoute = AdminSecurityRouteImport.update({
+  id: '/admin/security',
+  path: '/admin/security',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminDashboardRoute = AdminDashboardRouteImport.update({
   id: '/admin/dashboard',
   path: '/admin/dashboard',
@@ -105,6 +111,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/order': typeof OrderRoute
   '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/security': typeof AdminSecurityRoute
   '/api/orders': typeof ApiOrdersRoute
   '/api/subscribe': typeof ApiSubscribeRoute
   '/api/upload': typeof ApiUploadRoute
@@ -122,6 +129,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/order': typeof OrderRoute
   '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/security': typeof AdminSecurityRoute
   '/api/orders': typeof ApiOrdersRoute
   '/api/subscribe': typeof ApiSubscribeRoute
   '/api/upload': typeof ApiUploadRoute
@@ -140,6 +148,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/order': typeof OrderRoute
   '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/security': typeof AdminSecurityRoute
   '/api/orders': typeof ApiOrdersRoute
   '/api/subscribe': typeof ApiSubscribeRoute
   '/api/upload': typeof ApiUploadRoute
@@ -159,6 +168,7 @@ export interface FileRouteTypes {
     | '/'
     | '/order'
     | '/admin/dashboard'
+    | '/admin/security'
     | '/api/orders'
     | '/api/subscribe'
     | '/api/upload'
@@ -176,6 +186,7 @@ export interface FileRouteTypes {
     | '/'
     | '/order'
     | '/admin/dashboard'
+    | '/admin/security'
     | '/api/orders'
     | '/api/subscribe'
     | '/api/upload'
@@ -193,6 +204,7 @@ export interface FileRouteTypes {
     | '/'
     | '/order'
     | '/admin/dashboard'
+    | '/admin/security'
     | '/api/orders'
     | '/api/subscribe'
     | '/api/upload'
@@ -211,6 +223,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   OrderRoute: typeof OrderRoute
   AdminDashboardRoute: typeof AdminDashboardRoute
+  AdminSecurityRoute: typeof AdminSecurityRoute
   ApiOrdersRoute: typeof ApiOrdersRoute
   ApiSubscribeRoute: typeof ApiSubscribeRoute
   ApiUploadRoute: typeof ApiUploadRoute
@@ -283,6 +296,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiOrdersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/security': {
+      id: '/admin/security'
+      path: '/admin/security'
+      fullPath: '/admin/security'
+      preLoaderRoute: typeof AdminSecurityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/dashboard': {
       id: '/admin/dashboard'
       path: '/admin/dashboard'
@@ -339,6 +359,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   OrderRoute: OrderRoute,
   AdminDashboardRoute: AdminDashboardRoute,
+  AdminSecurityRoute: AdminSecurityRoute,
   ApiOrdersRoute: ApiOrdersRoute,
   ApiSubscribeRoute: ApiSubscribeRoute,
   ApiUploadRoute: ApiUploadRoute,
