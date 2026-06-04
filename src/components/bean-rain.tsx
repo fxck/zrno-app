@@ -93,7 +93,7 @@ export function BeanRain({
     const TERMINAL = 220
     // Showerhead half-width around the cursor. Thin, but enough to wet a letter.
     const spreadHalf = () => Math.max(10, fs * 0.26)
-    const emitRate = () => (whole ? Math.max(40, width / 7) : 60) // beans / sec
+    const emitRate = () => (whole ? Math.max(12, width / 18) : 15) // beans / sec
 
     function spawn(b: Bean, atY?: number) {
       b.active = true
@@ -112,16 +112,6 @@ export function BeanRain({
     function firstDead(): Bean | undefined {
       for (let i = 0; i < beans.length; i++) if (!beans[i].active) return beans[i]
       return undefined
-    }
-
-    // Prime a few drops already in flight so the stream is there immediately.
-    function prime() {
-      const n = whole ? 64 : 26
-      for (let k = 0; k < n; k++) {
-        const b = firstDead()
-        if (!b) break
-        spawn(b, Math.random() * height)
-      }
     }
 
     // Each bean is the actual font "O", rotated. Anton cap height ≈ 0.72·size.
@@ -241,7 +231,6 @@ export function BeanRain({
       fs = parseFloat(getComputedStyle(host).fontSize) || 48
       onMove(e)
       buildMask()
-      prime()
       ensureRunning()
     }
     function onLeave() {
