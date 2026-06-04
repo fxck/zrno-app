@@ -3,18 +3,22 @@ import { motion, useReducedMotion } from 'motion/react'
 import { EASE_OUT, usePointerFine } from './motion-primitives'
 
 /* ------------------------------------------------------------------ *
- * BeanRain — coffee beans literally rain down INSIDE a headline.
+ * BeanRain — coffee beans rain down INSIDE a headline, only in a soft
+ * cloud around the cursor.
  *
- * The visible headline is real DOM text (accessible, selectable, SSR'd).
- * Over it sits a canvas running a small physics sim: bean-shaped
- * particles (the ZRNO "O" — a capsule with a punched hole) fall under
- * gravity, drift, and tumble. The canvas is then clipped two ways:
- *   1) to the glyph shapes (a mask redrawn from the same text), so beans
- *      only ever appear *inside* the letters, and
- *   2) to a soft radial cloud around the cursor, so they only rain where
- *      you're looking — a cloud over an area, as asked.
- * It only animates while hovered (rAF stops when idle) and is disabled
- * for reduced-motion / coarse pointers (the text renders untouched).
+ * The visible headline is real DOM text (accessible, SSR'd). Over it a
+ * canvas runs a small physics sim: bean-shaped particles (an "O" — a
+ * capsule with a punched hole, drawn in a single even-odd fill) fall
+ * under gravity and tumble. The canvas is clipped to the glyph shapes
+ * (a mask redrawn from the same text) and to a radial cloud at the
+ * cursor.
+ *
+ * Performance: the sim only animates while hovered (rAF stops when
+ * idle), the font size is cached (no per-frame getComputedStyle), and —
+ * the big one — every per-frame composite (bean draws, glyph mask,
+ * cursor gradient) is confined to a small box around the pointer instead
+ * of the whole (possibly huge) headline canvas. Disabled for
+ * reduced-motion / coarse pointers.
  * ------------------------------------------------------------------ */
 
 type Line = string | { text: string; accent?: boolean }
@@ -62,50 +66,56 @@ export function BeanRain({
     const dpr = Math.min(2, window.devicePixelRatio || 1)
     let width = 0
     let height = 0
+    let fs = 48 // cached font size (px) — refreshed on resize/enter, never per-frame
     let beans: Bean[] = []
     let mask: HTMLCanvasElement | null = null
     const pointer = { x: -9999, y: -9999 }
     let hovering = false
     let hoverAlpha = 0
     let raf = 0
-    let last = 0
+    let lastT = 0
 
-    const fontPx = () => parseFloat(getComputedStyle(host).fontSize) || 48
+    const rand = (a: number, b: number) => a + Math.random() * (b - a)
 
-    function rand(min: number, max: number) {
-      return min + Math.random() * (max - min)
-    }
+    // Bean dimensions/speeds are clamped in absolute px so a 480px hero glyph
+    // doesn't get 80px beans screaming down the screen — they stay bean-sized
+    // and gently paced at every headline scale.
+    const beanLen = () =>
+      Math.max(6, Math.min(26, fs * 0.07)) * rand(0.72, 1.25)
+    const gravity = () => Math.min(1000, Math.max(420, fs * 1.3))
+    const TERMINAL = 380
 
-    function makeBean(fs: number, atTop: boolean, i: number): Bean {
-      const len = fs * rand(0.09, 0.17)
-      return {
-        x: Math.random() * width,
-        y: atTop ? -len - Math.random() * height : Math.random() * height,
-        vx: rand(-0.5, 0.5) * fs * 0.35,
-        vy: fs * rand(0.8, 2),
-        rot: Math.random() * Math.PI * 2,
-        vrot: rand(-1.6, 1.6),
-        len,
-        deep: i % 3 === 0,
-      }
+    function resetBean(b: Bean, atTop: boolean, i: number) {
+      b.len = beanLen()
+      b.x = Math.random() * width
+      b.y = atTop ? -b.len - Math.random() * height * 0.6 : Math.random() * height
+      b.vx = rand(-16, 16)
+      b.vy = rand(40, 130)
+      b.rot = Math.random() * Math.PI * 2
+      b.vrot = rand(-1.3, 1.3)
+      b.deep = i % 3 === 0
     }
 
     function seed() {
-      const fs = fontPx()
-      const count = Math.max(16, Math.min(140, Math.round(width / 18)))
-      beans = Array.from({ length: count }, (_, i) => makeBean(fs, false, i))
+      const count = Math.max(14, Math.min(90, Math.round(width / 24)))
+      beans = Array.from({ length: count }, (_, i) => {
+        const b: Bean = {
+          x: 0, y: 0, vx: 0, vy: 0, rot: 0, vrot: 0, len: 10, deep: false,
+        }
+        resetBean(b, false, i)
+        return b
+      })
     }
 
-    function capsule(len: number, hole: boolean) {
-      const w = hole ? len * 0.6 * 0.34 : len * 0.6
-      const h = hole ? len * 0.52 : len
-      const r = w / 2
+    // One even-odd path: outer capsule minus inner capsule = an "O" bean.
+    function beanPath(len: number) {
+      const ow = len * 0.62
+      const oh = len
+      const iw = ow * 0.4
+      const ih = oh * 0.46
       ctx!.beginPath()
-      if (typeof (ctx as any).roundRect === 'function') {
-        ;(ctx as any).roundRect(-w / 2, -h / 2, w, h, r)
-      } else {
-        ctx!.ellipse(0, 0, w / 2, h / 2, 0, 0, Math.PI * 2)
-      }
+      ;(ctx as any).roundRect(-ow / 2, -oh / 2, ow, oh, ow / 2)
+      ;(ctx as any).roundRect(-iw / 2, -ih / 2, iw, ih, iw / 2)
     }
 
     function buildMask() {
@@ -130,10 +140,10 @@ export function BeanRain({
           /* older browsers: ignore */
         }
         const text = el.textContent || ''
-        const fs = parseFloat(cs.fontSize) || 48
+        const size = parseFloat(cs.fontSize) || 48
         const mt = mc.measureText(text)
-        const ascent = mt.fontBoundingBoxAscent ?? fs * 0.8
-        const descent = mt.fontBoundingBoxDescent ?? fs * 0.2
+        const ascent = mt.fontBoundingBoxAscent ?? size * 0.8
+        const descent = mt.fontBoundingBoxDescent ?? size * 0.2
         const baseline = (r.height - (ascent + descent)) / 2 + ascent
         mc.fillText(text, r.left - hostRect.left, r.top - hostRect.top + baseline)
       })
@@ -143,6 +153,7 @@ export function BeanRain({
     function resize() {
       width = host.clientWidth
       height = host.clientHeight
+      fs = parseFloat(getComputedStyle(host).fontSize) || 48
       canvas.width = Math.max(1, Math.round(width * dpr))
       canvas.height = Math.max(1, Math.round(height * dpr))
       seed()
@@ -150,71 +161,71 @@ export function BeanRain({
     }
 
     function frame(t: number) {
-      const dt = Math.min(0.05, (t - last) / 1000 || 0)
-      last = t
+      const dt = Math.min(0.05, (t - lastT) / 1000 || 0)
+      lastT = t
       hoverAlpha += ((hovering ? 1 : 0) - hoverAlpha) * Math.min(1, dt * 6)
 
-      const fs = fontPx()
-      const g = Math.max(650, fs * 3.2)
-      for (const b of beans) {
-        b.vy += g * dt
+      const g = gravity()
+      for (let i = 0; i < beans.length; i++) {
+        const b = beans[i]
+        b.vy = Math.min(TERMINAL, b.vy + g * dt)
         b.x += b.vx * dt
         b.y += b.vy * dt
         b.rot += b.vrot * dt
-        if (b.y - b.len > height) {
-          Object.assign(b, makeBean(fs, true, Math.round(b.x)))
-        }
+        if (b.y - b.len > height) resetBean(b, true, i)
       }
 
-      // 1) beans
-      ctx!.setTransform(dpr, 0, 0, dpr, 0, 0)
-      ctx!.clearRect(0, 0, width, height)
-      for (const b of beans) {
-        ctx!.save()
-        ctx!.translate(b.x, b.y)
-        ctx!.rotate(b.rot)
-        ctx!.fillStyle = b.deep ? AMBERDEEP : AMBER
-        capsule(b.len, false)
-        ctx!.fill()
-        ctx!.restore()
-      }
-      // 2) punch the bean holes (the "O")
-      ctx!.globalCompositeOperation = 'destination-out'
-      for (const b of beans) {
-        ctx!.save()
-        ctx!.translate(b.x, b.y)
-        ctx!.rotate(b.rot)
-        capsule(b.len, true)
-        ctx!.fill()
-        ctx!.restore()
-      }
-      // 3) clip to the glyphs
-      ctx!.globalCompositeOperation = 'destination-in'
+      // Clear is cheap (memset); the costly compositing is bounded to the cloud.
       ctx!.setTransform(1, 0, 0, 1, 0, 0)
-      if (mask) ctx!.drawImage(mask, 0, 0)
-      // 4) clip to the cursor cloud
-      const cr = Math.max(48, fs * 0.85) * dpr
-      const grad = ctx!.createRadialGradient(
-        pointer.x * dpr,
-        pointer.y * dpr,
-        0,
-        pointer.x * dpr,
-        pointer.y * dpr,
-        cr,
-      )
-      grad.addColorStop(0, `rgba(0,0,0,${hoverAlpha})`)
-      grad.addColorStop(0.5, `rgba(0,0,0,${hoverAlpha})`)
-      grad.addColorStop(1, 'rgba(0,0,0,0)')
-      ctx!.fillStyle = grad
-      ctx!.fillRect(0, 0, canvas.width, canvas.height)
-      ctx!.globalCompositeOperation = 'source-over'
+      ctx!.clearRect(0, 0, canvas.width, canvas.height)
+
+      const crCss = Math.max(44, Math.min(150, fs * 0.62))
+      if (hoverAlpha > 0.01 && mask) {
+        // device-pixel box around the pointer
+        const bx = Math.max(0, Math.floor((pointer.x - crCss) * dpr))
+        const by = Math.max(0, Math.floor((pointer.y - crCss) * dpr))
+        const bw = Math.min(canvas.width - bx, Math.ceil(crCss * 2 * dpr))
+        const bh = Math.min(canvas.height - by, Math.ceil(crCss * 2 * dpr))
+
+        if (bw > 0 && bh > 0) {
+          // 1) draw only the beans near the cursor (css-space transform)
+          ctx!.setTransform(dpr, 0, 0, dpr, 0, 0)
+          for (let i = 0; i < beans.length; i++) {
+            const b = beans[i]
+            if (
+              Math.abs(b.x - pointer.x) > crCss + b.len ||
+              Math.abs(b.y - pointer.y) > crCss + b.len
+            )
+              continue
+            ctx!.save()
+            ctx!.translate(b.x, b.y)
+            ctx!.rotate(b.rot)
+            ctx!.fillStyle = b.deep ? AMBERDEEP : AMBER
+            beanPath(b.len)
+            ctx!.fill('evenodd')
+            ctx!.restore()
+          }
+          // 2) clip to glyphs — only the cloud box of the mask
+          ctx!.setTransform(1, 0, 0, 1, 0, 0)
+          ctx!.globalCompositeOperation = 'destination-in'
+          ctx!.drawImage(mask, bx, by, bw, bh, bx, by, bw, bh)
+          // 3) clip to the cursor cloud
+          const cx = pointer.x * dpr
+          const cy = pointer.y * dpr
+          const grad = ctx!.createRadialGradient(cx, cy, 0, cx, cy, crCss * dpr)
+          grad.addColorStop(0, `rgba(0,0,0,${hoverAlpha})`)
+          grad.addColorStop(0.55, `rgba(0,0,0,${hoverAlpha})`)
+          grad.addColorStop(1, 'rgba(0,0,0,0)')
+          ctx!.fillStyle = grad
+          ctx!.fillRect(bx, by, bw, bh)
+          ctx!.globalCompositeOperation = 'source-over'
+        }
+      }
 
       if (hovering || hoverAlpha > 0.01) {
         raf = requestAnimationFrame(frame)
       } else {
         raf = 0
-        ctx!.setTransform(dpr, 0, 0, dpr, 0, 0)
-        ctx!.clearRect(0, 0, width, height)
       }
     }
 
@@ -225,10 +236,11 @@ export function BeanRain({
     }
     function onEnter(e: MouseEvent) {
       hovering = true
+      fs = parseFloat(getComputedStyle(host).fontSize) || 48
       onMove(e)
       buildMask()
       if (!raf) {
-        last = performance.now()
+        lastT = performance.now()
         raf = requestAnimationFrame(frame)
       }
     }

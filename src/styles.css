@@ -94,6 +94,16 @@ h3 {
 :focus:not(:focus-visible) {
   outline: none;
 }
+/* Form fields render their own focus ring (see ui/input). Don't stack the
+   global outline on top — that double amber ring is the ugly shadcn-ism. */
+input:focus,
+input:focus-visible,
+textarea:focus,
+textarea:focus-visible,
+select:focus,
+select:focus-visible {
+  outline: none;
+}
 
 /* Browser autofill: keep the dark theme. Chrome forces a white/pale-blue
    background on autofilled fields — the inset box-shadow paints over it with
