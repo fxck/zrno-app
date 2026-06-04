@@ -184,12 +184,22 @@ export function MaskedLines({
       {lines.map((line, i) => (
         <span
           key={i}
-          style={{ display: 'block', overflow: 'hidden', paddingBottom: '0.08em' }}
+          style={{
+            display: 'block',
+            overflow: 'hidden',
+            // Breathing room so tall display caps / descenders aren't shaved by
+            // the mask; negative margins reclaim it so headline spacing stays
+            // tight. The hide distance (below) is bumped to clear the padding.
+            paddingTop: '0.12em',
+            paddingBottom: '0.16em',
+            marginTop: '-0.12em',
+            marginBottom: '-0.16em',
+          }}
         >
           <motion.span
             style={{ display: 'block', willChange: 'transform' }}
             variants={{
-              hidden: { y: '108%' },
+              hidden: { y: '128%' },
               show: { y: '0%', transition: { duration, ease: EASE_OUT } },
             }}
           >

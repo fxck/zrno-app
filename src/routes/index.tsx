@@ -187,12 +187,17 @@ function Home() {
               unmistakably ours.
             </motion.p>
             <h1 className="font-display t-hero px-4 md:px-10 -mb-[1.5vw] select-none">
-              <MaskedLines
-                lines={['ZRNO']}
-                trigger="mount"
-                delay={0.5}
-                duration={1.1}
-              />
+              {/* No overflow mask at t-hero size: with line-height 0.78 a mask
+                  shaves the caps top & bottom. A plain fade + rise shows the
+                  full glyph and never clips. */}
+              <motion.span
+                className="block"
+                initial={reduce ? false : { opacity: 0, y: '0.1em' }}
+                animate={reduce ? {} : { opacity: 1, y: 0 }}
+                transition={{ duration: 1.1, ease: EASE_OUT, delay: 0.4 }}
+              >
+                ZRNO
+              </motion.span>
             </h1>
           </div>
         </motion.div>
@@ -277,17 +282,17 @@ function Home() {
             <div className="text-muted mt-3">Roasted weekly in Žižkov, Prague 3.</div>
           </Reveal>
           <div className="flex flex-col items-center gap-8">
-            <p className="font-body text-2xl md:text-3xl font-medium leading-snug text-center text-cream">
-              <MaskedLines
-                duration={0.85}
-                stagger={0.08}
-                lines={[
-                  'We source green beans from single estates, then roast them dark and',
-                  'slow in a converted workshop. No shortcuts, no compromise — only the',
-                  'deep, caramelised character Prague has come to know us for.',
-                ]}
-              />
-            </p>
+            {/* A flowing paragraph — let it wrap naturally and reveal as one
+                gentle fade-up. (Was per-line masked, which clipped + produced
+                ragged double-wrapped lines.) */}
+            <Reveal
+              as="p"
+              className="font-body text-2xl md:text-3xl font-medium leading-snug text-center text-cream text-balance"
+            >
+              We source green beans from single estates, then roast them dark and
+              slow in a converted workshop. No shortcuts, no compromise — only the
+              deep, caramelised character Prague has come to know us for.
+            </Reveal>
             <Reveal
               as="div"
               className="font-mono text-[11px] tracking-[0.2em] text-taupe"
