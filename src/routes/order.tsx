@@ -10,8 +10,10 @@ import { EASE_OUT, MaskedLines } from '../components/motion-primitives'
 
 export const Route = createFileRoute('/order')({
   validateSearch: (s: Record<string, unknown>) => ({
-    success: String(s.success ?? '') === '1',
-    canceled: String(s.canceled ?? '') === '1',
+    // Accept '1', 'true', and boolean true so the flag survives TanStack
+    // Router's canonical re-serialization (1 → true → 'true' → …).
+    success: s.success === '1' || s.success === 'true' || s.success === true,
+    canceled: s.canceled === '1' || s.canceled === 'true' || s.canceled === true,
     session_id: typeof s.session_id === 'string' ? s.session_id : undefined,
   }),
   component: OrderPage,
@@ -23,18 +25,20 @@ function OrderPage() {
   const reduce = useReducedMotion()
   const cart = useCart()
   const { lines, count, total } = cartSummary(cart)
-  const { success, canceled, session_id } = Route.useSearch()
+  const { canceled, session_id } = Route.useSearch()
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState<OrderResult | null>(null)
-  const [confirming, setConfirming] = useState(success && Boolean(session_id))
+  const [confirming, setConfirming] = useState(Boolean(session_id) && !canceled)
 
-  // Returning from Stripe Checkout: confirm the session → mark paid + receipt.
+  // Returning from Stripe Checkout: a session_id (and not canceled) → confirm
+  // it with the server, which marks the order paid + shows the receipt. Keyed
+  // off session_id rather than the success flag so a flaky flag can't skip it.
   useEffect(() => {
-    if (!success || !session_id || done) return
+    if (!session_id || canceled || done) return
     let cancelledFx = false
     setConfirming(true)
     fetch('/api/checkout/confirm', {
@@ -58,7 +62,7 @@ function OrderPage() {
       cancelledFx = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [success, session_id])
+  }, [session_id, canceled])
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
