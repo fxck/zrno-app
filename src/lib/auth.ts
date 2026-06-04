@@ -21,11 +21,13 @@ export const authOptions = {
   secret: process.env.BETTER_AUTH_SECRET,
   baseURL,
   emailAndPassword: { enabled: true },
+  // Portable across projects: trust localhost (dev) plus whatever public URL
+  // the platform assigns this container (zeropsSubdomain) and an optional
+  // custom domain (BETTER_AUTH_URL). No hard-coded project-specific hosts.
   trustedOrigins: [
     'http://localhost:3000',
     ...(process.env.zeropsSubdomain ? [process.env.zeropsSubdomain] : []),
-    'https://appstage-24d9-3000.prg1.zerops.app',
-    'https://appdev-24d9-3000.prg1.zerops.app',
+    ...(process.env.BETTER_AUTH_URL ? [process.env.BETTER_AUTH_URL] : []),
   ],
   plugins: [
     passkey({

@@ -1,0 +1,45 @@
+#zeropsPreprocessor=on
+# ─────────────────────────────────────────────────────────────────────────
+# ZRNO — STAGE (single service)
+#
+# One `app` runtime built from git running the production build, plus db,
+# object storage and Mailpit. A standalone preview/QA environment — no dev
+# pair, single container, Lightweight plan.
+#
+# Stripe OMITTED → simulated checkout. Add keys later to enable real Stripe.
+# ─────────────────────────────────────────────────────────────────────────
+project:
+  name: zrno-coffee-stage
+  corePackage: LIGHT
+  tags:
+    - zrno
+    - tanstack-start
+  envVariables:
+    BETTER_AUTH_SECRET: <@generateRandomString(<48>)>
+    ADMIN_EMAIL: admin@zrno.cz
+    ADMIN_PASSWORD: <@generateRandomString(<16>)>
+
+services:
+  - hostname: db
+    type: postgresql@16
+    mode: NON_HA
+    priority: 10
+
+  - hostname: storage
+    type: object-storage
+    priority: 10
+    objectStorageSize: 5
+    objectStoragePolicy: public-objects-read
+
+  - hostname: mailpit
+    type: alpine@3.20
+    priority: 10
+    enableSubdomainAccess: true
+    buildFromGit: https://github.com/zeropsio/recipe-mailpit
+
+  # Single production-build service.
+  - hostname: app
+    type: nodejs@24
+    enableSubdomainAccess: true
+    buildFromGit: https://github.com/fxck/pencil-zerops
+    zeropsSetup: prod

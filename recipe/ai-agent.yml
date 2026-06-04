@@ -1,0 +1,66 @@
+#zeropsPreprocessor=on
+# ─────────────────────────────────────────────────────────────────────────
+# ZRNO — AI-AGENT WORKSPACE (dev + stage pair)
+#
+# Imports the full project as a dev/stage PAIR so a coding agent (Zerops
+# Control Panel / Claude Code) can iterate on `appdev` and verify the
+# production build on `appstage` — both seeded from git, sharing one db,
+# object storage and Mailpit.
+#
+#   appdev   → zerops.yaml `dev`  block (idles; agent runs the dev server)
+#   appstage → zerops.yaml `prod` block (real Node SSR server)
+#
+# Stripe is intentionally OMITTED → the app runs in simulated-checkout mode.
+# Add STRIPE_SECRET_KEY (+ STRIPE_PUBLISHABLE_KEY) in the project env later
+# to switch on real Stripe Checkout. See recipe/README.md.
+# ─────────────────────────────────────────────────────────────────────────
+project:
+  name: zrno-coffee-dev
+  corePackage: LIGHT
+  tags:
+    - zrno
+    - tanstack-start
+  envVariables:
+    # Shared auth secret — generated once at import, identical for every
+    # service (they share the db, so the value must match).
+    BETTER_AUTH_SECRET: <@generateRandomString(<48>)>
+    # Seed admin (better-auth). Change the email; read the generated password
+    # from this project's env vars in the Zerops GUI after import.
+    ADMIN_EMAIL: admin@zrno.cz
+    ADMIN_PASSWORD: <@generateRandomString(<16>)>
+
+services:
+  # PostgreSQL — better-auth + orders + subscribers + journal posts.
+  - hostname: db
+    type: postgresql@16
+    mode: NON_HA
+    priority: 10
+
+  # S3-compatible object storage — journal cover + inline images.
+  - hostname: storage
+    type: object-storage
+    priority: 10
+    objectStorageSize: 5
+    objectStoragePolicy: public-objects-read
+
+  # Mailpit — local SMTP catcher + web UI (order/subscribe emails in dev).
+  - hostname: mailpit
+    type: alpine@3.20
+    priority: 10
+    enableSubdomainAccess: true
+    buildFromGit: https://github.com/zeropsio/recipe-mailpit
+
+  # Dev workspace — builds from git once, then idles for SSHFS iteration.
+  - hostname: appdev
+    type: nodejs@24
+    enableSubdomainAccess: true
+    buildFromGit: https://github.com/fxck/pencil-zerops
+    zeropsSetup: dev
+    maxContainers: 1
+
+  # Stage — runs the real production build to verify before promotion.
+  - hostname: appstage
+    type: nodejs@24
+    enableSubdomainAccess: true
+    buildFromGit: https://github.com/fxck/pencil-zerops
+    zeropsSetup: prod

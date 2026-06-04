@@ -7,6 +7,7 @@ import { Button } from '../components/ui/button'
 import { Input, Label } from '../components/ui/input'
 import { MenuAddControl } from '../components/menu-add-control'
 import { SiteHeader } from '../components/site-header'
+import { getPaymentMode } from '../lib/server/payment-mode'
 import { EASE_OUT, MaskedLines } from '../components/motion-primitives'
 
 export const Route = createFileRoute('/order')({
@@ -17,6 +18,7 @@ export const Route = createFileRoute('/order')({
     canceled: s.canceled === '1' || s.canceled === 'true' || s.canceled === true,
     session_id: typeof s.session_id === 'string' ? s.session_id : undefined,
   }),
+  loader: async () => getPaymentMode(),
   component: OrderPage,
 })
 
@@ -27,6 +29,7 @@ function OrderPage() {
   const cart = useCart()
   const { lines, count, total } = cartSummary(cart)
   const { canceled, session_id } = Route.useSearch()
+  const { stripe: stripeOn } = Route.useLoaderData()
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -126,7 +129,7 @@ function OrderPage() {
       <SiteHeader variant="page" back />
 
       {done ? (
-        <Confirmation result={done} />
+        <Confirmation result={done} stripeOn={stripeOn} />
       ) : showConfirming ? (
         <ConfirmingView />
       ) : (
@@ -282,13 +285,27 @@ function OrderPage() {
               </div>
               {error && <p className="text-red-400 text-sm">{error}</p>}
               <Button type="submit" size="lg" className="w-full" disabled={busy || !count}>
-                {busy ? 'Redirecting to checkout…' : count ? `Pay ${total} Kč` : 'Add an item to continue'}
+                {busy
+                  ? stripeOn
+                    ? 'Redirecting to checkout…'
+                    : 'Placing order…'
+                  : count
+                    ? `Pay ${total} Kč`
+                    : 'Add an item to continue'}
               </Button>
-              <p className="text-muted text-[11px] leading-relaxed">
-                You’ll complete payment securely on Stripe. Test mode — use card{' '}
-                <span className="text-taupe">4242 4242 4242 4242</span>, any future date &amp; CVC.
-                A confirmation email follows.
-              </p>
+              {stripeOn ? (
+                <p className="text-muted text-[11px] leading-relaxed">
+                  You’ll complete payment securely on Stripe. Test mode — use card{' '}
+                  <span className="text-taupe">4242 4242 4242 4242</span>, any future date &amp; CVC.
+                  A confirmation email follows.
+                </p>
+              ) : (
+                <p className="text-muted text-[11px] leading-relaxed">
+                  Demo checkout — no card details and no real payment. Your order is
+                  recorded and a confirmation email follows. Add a Stripe key to take
+                  real payments.
+                </p>
+              )}
             </form>
           </aside>
         </main>
@@ -339,16 +356,19 @@ function SummaryStep({
   )
 }
 
-function Confirmation({ result }: { result: OrderResult }) {
+function Confirmation({ result, stripeOn }: { result: OrderResult; stripeOn: boolean }) {
   return (
     <main className="px-6 md:px-14 py-24 max-w-2xl">
-      <div className="font-mono text-xs tracking-[0.2em] text-amber">ORDER {result.status.toUpperCase()}</div>
+      <div className="font-mono text-xs tracking-[0.2em] text-amber">
+        ORDER {stripeOn ? result.status.toUpperCase() : 'CONFIRMED'}
+      </div>
       <h1 className="font-display t-lg mt-3">
         <MaskedLines lines={['THANK YOU.']} trigger="mount" />
       </h1>
       <p className="text-taupe mt-6 leading-relaxed max-w-md">
-        Order <span className="text-cream">#{result.orderId.slice(0, 8)}</span> is paid. We’ve sent a
-        confirmation email. Total charged:{' '}
+        Order <span className="text-cream">#{result.orderId.slice(0, 8)}</span>{' '}
+        {stripeOn ? 'is paid' : 'is confirmed'}. We’ve sent a confirmation email.{' '}
+        {stripeOn ? 'Total charged:' : 'Order total:'}{' '}
         <span className="text-amber">{result.total} Kč</span>.
       </p>
       <div className="flex gap-4 mt-10">

@@ -1,0 +1,62 @@
+#zeropsPreprocessor=on
+# ─────────────────────────────────────────────────────────────────────────
+# ZRNO — PRODUCTION
+#
+# Production-grade topology: HA PostgreSQL (3-node), larger object storage,
+# and an `app` runtime scaled to 2–4 dedicated-CPU containers with a
+# health-gated rolling deploy (zero downtime). Requires the SERIOUS project
+# plan (HA managed services + multi-container).
+#
+# Email: ships with Mailpit so the recipe works out of the box. For real
+# production email, set SMTP_HOST / SMTP_PORT / credentials in the project
+# env (overriding the zerops.yaml defaults) and remove the mailpit service.
+#
+# Payments: add STRIPE_SECRET_KEY + STRIPE_PUBLISHABLE_KEY (LIVE keys) to the
+# project env to enable real Stripe Checkout. Without them the app runs in
+# simulated-checkout mode.
+# ─────────────────────────────────────────────────────────────────────────
+project:
+  name: zrno-coffee-prod
+  corePackage: SERIOUS
+  tags:
+    - zrno
+    - tanstack-start
+    - production
+  envVariables:
+    BETTER_AUTH_SECRET: <@generateRandomString(<48>)>
+    ADMIN_EMAIL: admin@zrno.cz
+    ADMIN_PASSWORD: <@generateRandomString(<20>)>
+
+services:
+  # HA PostgreSQL — 3-node master/replica, auto-failover.
+  - hostname: db
+    type: postgresql@16
+    mode: HA
+    priority: 10
+    verticalAutoscaling:
+      minRam: 1
+
+  - hostname: storage
+    type: object-storage
+    priority: 10
+    objectStorageSize: 25
+    objectStoragePolicy: public-objects-read
+
+  # Mailpit catcher (replace with a real SMTP provider for production email).
+  - hostname: mailpit
+    type: alpine@3.20
+    priority: 10
+    enableSubdomainAccess: true
+    buildFromGit: https://github.com/zeropsio/recipe-mailpit
+
+  # Production app — 2–4 dedicated-CPU containers, health-gated deploys.
+  - hostname: app
+    type: nodejs@24
+    enableSubdomainAccess: true
+    buildFromGit: https://github.com/fxck/pencil-zerops
+    zeropsSetup: prod
+    minContainers: 2
+    maxContainers: 4
+    verticalAutoscaling:
+      cpuMode: DEDICATED
+      minRam: 0.5

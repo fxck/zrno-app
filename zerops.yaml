@@ -3,12 +3,12 @@ zerops:
   # started on demand via zerops_dev_server (no supervised run.start).
   - setup: dev
     build:
-      base: nodejs@22
+      base: nodejs@24
       buildCommands:
         - npm install
       deployFiles: [.]
     run:
-      base: nodejs@22
+      base: nodejs@24
       ports:
         - port: 3000
           httpSupport: true
@@ -26,21 +26,33 @@ zerops:
         S3_ACCESS_KEY_ID: ${storage_accessKeyId}
         S3_SECRET_ACCESS_KEY: ${storage_secretAccessKey}
 
-  # Production build (appstage): cross-deployed from appdev. Vite + Nitro
-  # produce a self-contained Node server at .output/server/index.mjs.
+  # Production build (appstage + recipe single-service envs): cross-deployed
+  # from appdev, or built from git in a recipe import. Vite + Nitro produce a
+  # self-contained Node server at .output/server/index.mjs.
   - setup: prod
     build:
-      base: nodejs@22
+      base: nodejs@24
       buildCommands:
         - npm install
         - npm run build
       deployFiles:
         - .output
+    deploy:
+      # Gate the traffic switch on the server actually answering.
+      readinessCheck:
+        httpGet:
+          port: 3000
+          path: /
     run:
-      base: nodejs@22
+      base: nodejs@24
       ports:
         - port: 3000
           httpSupport: true
+      # Restart the container if the app stops answering on the root route.
+      healthCheck:
+        httpGet:
+          port: 3000
+          path: /
       envVariables:
         NODE_ENV: production
         PORT: "3000"
