@@ -6,8 +6,10 @@ import {
   useRouterState,
 } from '@tanstack/react-router'
 import { useEffect, useLayoutEffect, useRef } from 'react'
+import { motion, useReducedMotion } from 'motion/react'
 
 import appCss from '../styles.css?url'
+import { EASE_OUT } from '../components/motion-primitives'
 
 // useLayoutEffect warns on the server; pick the right one per environment so
 // the scroll reset lands before paint on the client without the SSR noise.
@@ -58,27 +60,28 @@ export const Route = createRootRoute({
 })
 
 /* ------------------------------------------------------------------ *
- * RootLayout — plain Outlet, no route-level animation.
+ * RootLayout — subtle fade-IN on each navigated page.
  *
- * (An earlier opacity crossfade caused layout shift + flashing: mode="wait"
- * leaves a blank frame between unmount/mount that collapses page height, and
- * the fade fought every page's own entrance reveals. Removed. The per-page
- * mount/scroll animations already carry the motion.)
+ * Deliberately NOT a crossfade: there's no exit animation and no
+ * AnimatePresence mode="wait", so the new page mounts in the same commit
+ * the old one unmounts — no blank frame, no height collapse, no layout
+ * shift. The keyed wrapper just fades the incoming page 0→1.
  *
- * The only thing kept is a shift-free scroll reset on SPA navigation, which
- * also honors cross-page #anchor links (e.g. /#menu from a sub-page nav).
+ * - Opacity only (never transform/filter) → the wrapper never becomes a
+ *   containing block, so the fixed/sticky chrome keeps working.
+ * - The FIRST load (SSR + hydration) renders at full opacity with NO
+ *   animation, so there's no initial flash; only client navigations fade.
+ * - Scroll resets to top on navigation (honoring cross-page #anchors).
  * ------------------------------------------------------------------ */
 function RootLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
-  // Skip the very first mount so browser scroll restoration (refresh /
-  // back-forward) and deep links are preserved; only SPA navigations reset.
+  const reduce = useReducedMotion()
+  // True only for the very first render — skips the fade on initial load and
+  // the scroll reset on refresh/back-forward (browser restoration wins there).
   const firstRef = useRef(true)
 
   useIsoLayoutEffect(() => {
-    if (firstRef.current) {
-      firstRef.current = false
-      return
-    }
+    if (firstRef.current) return
     const hash = window.location.hash
     if (hash.length > 1) {
       const el = document.getElementById(decodeURIComponent(hash.slice(1)))
@@ -90,7 +93,21 @@ function RootLayout() {
     window.scrollTo(0, 0)
   }, [pathname])
 
-  return <Outlet />
+  const animateThisPage = !firstRef.current && !reduce
+  useEffect(() => {
+    firstRef.current = false
+  }, [])
+
+  return (
+    <motion.div
+      key={pathname}
+      initial={animateThisPage ? { opacity: 0 } : false}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3, ease: EASE_OUT }}
+    >
+      <Outlet />
+    </motion.div>
+  )
 }
 
 function RootDocument({ children }: { children: React.ReactNode }) {
