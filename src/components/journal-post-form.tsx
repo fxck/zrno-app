@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Link, useRouter } from '@tanstack/react-router'
 import { savePost, type Post } from '../lib/server/blog'
+import { ImagePlus } from 'lucide-react'
 import { uploadImageFile, ACCEPT_IMAGE } from '../lib/upload-client'
 import { Button } from './ui/button'
 import { Input, Label } from './ui/input'
@@ -154,7 +155,7 @@ export default function JournalPostForm({ post }: Props) {
             className="w-full resize-none bg-transparent font-display text-4xl md:text-5xl leading-[0.98] text-cream placeholder:text-muted outline-none"
           />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_2fr] gap-5 items-start">
             <div className="space-y-1.5">
               <Label htmlFor="slug">Slug</Label>
               <Input
@@ -168,8 +169,9 @@ export default function JournalPostForm({ post }: Props) {
                 placeholder="auto-from-title"
               />
             </div>
+
             <div className="space-y-1.5">
-              <Label htmlFor="cover">Cover image</Label>
+              <Label>Cover image</Label>
               <input
                 ref={coverInputRef}
                 type="file"
@@ -177,32 +179,44 @@ export default function JournalPostForm({ post }: Props) {
                 className="hidden"
                 onChange={onCoverFile}
               />
-              <div className="flex items-center gap-3">
-                <Button
+              {cover ? (
+                <div className="group relative aspect-[16/9] w-full overflow-hidden rounded border border-muted/20 bg-elevated">
+                  <img
+                    key={cover}
+                    src={cover}
+                    alt="Cover preview"
+                    className="h-full w-full object-cover"
+                    onError={(e) => (e.currentTarget.style.opacity = '0.15')}
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center gap-2 bg-espresso/70 opacity-0 backdrop-blur-[2px] transition-opacity duration-200 group-hover:opacity-100">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={coverBusy}
+                      onClick={() => coverInputRef.current?.click()}
+                    >
+                      {coverBusy ? 'Uploading…' : 'Replace'}
+                    </Button>
+                    <Button type="button" size="sm" variant="ghost" onClick={() => setCover('')}>
+                      Remove
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <button
                   type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={coverBusy}
                   onClick={() => coverInputRef.current?.click()}
+                  disabled={coverBusy}
+                  className="flex aspect-[16/9] w-full flex-col items-center justify-center gap-2 rounded border border-dashed border-muted/40 bg-elevated/40 text-taupe transition-colors hover:border-amber/50 hover:text-cream disabled:opacity-60"
                 >
-                  {coverBusy ? 'Uploading…' : cover ? 'Replace' : 'Upload image'}
-                </Button>
-                {cover && !coverBusy && (
-                  <button
-                    type="button"
-                    onClick={() => setCover('')}
-                    className="font-mono text-[11px] tracking-[0.12em] text-muted hover:text-cream transition-colors"
-                  >
-                    Remove
-                  </button>
-                )}
-              </div>
-              <Input
-                id="cover"
-                value={cover}
-                onChange={(e) => setCover(e.target.value)}
-                placeholder="…or paste an image URL"
-              />
+                  <ImagePlus size={22} strokeWidth={1.75} />
+                  <span className="font-mono text-[11px] tracking-[0.16em]">
+                    {coverBusy ? 'UPLOADING…' : 'UPLOAD COVER IMAGE'}
+                  </span>
+                  <span className="text-[11px] text-muted">JPEG · PNG · WebP — up to 8 MB</span>
+                </button>
+              )}
               {coverErr && <p className="text-red-400 text-xs">{coverErr}</p>}
             </div>
           </div>
@@ -218,16 +232,6 @@ export default function JournalPostForm({ post }: Props) {
               className="w-full resize-y bg-elevated px-4 py-3 text-sm text-cream placeholder:text-muted outline-none focus:ring-2 focus:ring-amber/50"
             />
           </div>
-
-          {cover.trim() && (
-            <img
-              key={cover}
-              src={cover}
-              alt="Cover preview"
-              className="w-full h-auto border border-muted/20"
-              onError={(e) => (e.currentTarget.style.display = 'none')}
-            />
-          )}
         </div>
 
         {/* The editor canvas. Same `.prose-article` column/typography as live. */}

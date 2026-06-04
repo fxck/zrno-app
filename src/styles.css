@@ -138,7 +138,10 @@ h3 {
 /* Fluid monumental display sizes (clamp commas break Tailwind arbitrary values) */
 .t-hero {
   font-size: clamp(6rem, 31vw, 30rem);
-  line-height: 0.78;
+  /* Must contain the Anton caps: a tighter line-height makes the glyph
+     overflow its box — poking into the subtitle above and getting clipped by
+     the hero's overflow-hidden below. 0.92 keeps it monumental but whole. */
+  line-height: 0.92;
   letter-spacing: -0.02em;
 }
 .t-xl {

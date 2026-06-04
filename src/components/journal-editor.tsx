@@ -1,4 +1,5 @@
 import { useEditor, EditorContent, type Editor } from '@tiptap/react'
+import { BubbleMenu, FloatingMenu } from '@tiptap/react/menus'
 import StarterKit from '@tiptap/starter-kit'
 import Image from '@tiptap/extension-image'
 import Placeholder from '@tiptap/extension-placeholder'
@@ -15,19 +16,15 @@ import {
   Link2Off,
   ImagePlus,
   Minus,
-  Undo2,
-  Redo2,
   Loader2,
 } from 'lucide-react'
 import { uploadImageFile, ACCEPT_IMAGE } from '../lib/upload-client'
 
 // The shared prose stylesheet — the SAME file the published article imports.
-// This is what makes the editing canvas a 1:1 preview of the live article.
 import '../journal-prose.css'
 
-// NOTE: This component is the only place Tiptap is imported. It never runs on
-// the server: `immediatelyRender: false` defers rendering to the client (the
-// editor needs the DOM), and no server fn / loader imports this module.
+// Tiptap is imported ONLY here. `immediatelyRender: false` keeps it off the
+// server, and no loader/server fn imports this module.
 
 type Props = {
   value: string
@@ -39,7 +36,7 @@ function imageFilesFrom(list?: FileList | null): File[] {
   return Array.from(list).filter((f) => f.type.startsWith('image/'))
 }
 
-function ToolbarButton({
+function MenuButton({
   onClick,
   active,
   disabled,
@@ -61,11 +58,9 @@ function ToolbarButton({
       aria-label={title}
       aria-pressed={active}
       className={[
-        'inline-flex h-9 w-9 items-center justify-center transition-colors',
+        'inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors',
         'disabled:opacity-30 disabled:pointer-events-none',
-        active
-          ? 'bg-amber text-espresso'
-          : 'text-taupe hover:text-cream hover:bg-elevated',
+        active ? 'bg-amber text-espresso' : 'text-cream/80 hover:bg-surface hover:text-cream',
       ].join(' ')}
     >
       {children}
@@ -74,140 +69,13 @@ function ToolbarButton({
 }
 
 function Divider() {
-  return <span className="mx-1 h-5 w-px self-center bg-muted/25" aria-hidden />
+  return <span className="mx-0.5 h-5 w-px self-center bg-muted/30" aria-hidden />
 }
 
-function Toolbar({
-  editor,
-  onPickImage,
-  uploading,
-}: {
-  editor: Editor
-  onPickImage: () => void
-  uploading: boolean
-}) {
-  function setLink() {
-    const prev = editor.getAttributes('link').href as string | undefined
-    const url = window.prompt('Link URL', prev ?? 'https://')
-    if (url === null) return
-    if (url === '') {
-      editor.chain().focus().extendMarkRange('link').unsetLink().run()
-      return
-    }
-    editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
-  }
-
-  return (
-    <div className="sticky top-0 z-10 -mx-4 mb-6 flex flex-wrap items-center gap-0.5 border-b border-muted/20 bg-espresso/95 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-espresso/80">
-      <ToolbarButton
-        title="Bold"
-        onClick={() => editor.chain().focus().toggleBold().run()}
-        active={editor.isActive('bold')}
-      >
-        <Bold size={16} strokeWidth={2.5} />
-      </ToolbarButton>
-      <ToolbarButton
-        title="Italic"
-        onClick={() => editor.chain().focus().toggleItalic().run()}
-        active={editor.isActive('italic')}
-      >
-        <Italic size={16} strokeWidth={2.5} />
-      </ToolbarButton>
-
-      <Divider />
-
-      <ToolbarButton
-        title="Heading 2"
-        onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-        active={editor.isActive('heading', { level: 2 })}
-      >
-        <Heading2 size={17} strokeWidth={2.25} />
-      </ToolbarButton>
-      <ToolbarButton
-        title="Heading 3"
-        onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-        active={editor.isActive('heading', { level: 3 })}
-      >
-        <Heading3 size={17} strokeWidth={2.25} />
-      </ToolbarButton>
-      <ToolbarButton
-        title="Quote"
-        onClick={() => editor.chain().focus().toggleBlockquote().run()}
-        active={editor.isActive('blockquote')}
-      >
-        <Quote size={16} strokeWidth={2.25} />
-      </ToolbarButton>
-
-      <Divider />
-
-      <ToolbarButton
-        title="Bullet list"
-        onClick={() => editor.chain().focus().toggleBulletList().run()}
-        active={editor.isActive('bulletList')}
-      >
-        <List size={17} strokeWidth={2.25} />
-      </ToolbarButton>
-      <ToolbarButton
-        title="Numbered list"
-        onClick={() => editor.chain().focus().toggleOrderedList().run()}
-        active={editor.isActive('orderedList')}
-      >
-        <ListOrdered size={17} strokeWidth={2.25} />
-      </ToolbarButton>
-
-      <Divider />
-
-      <ToolbarButton title="Add / edit link" onClick={setLink} active={editor.isActive('link')}>
-        <Link2 size={16} strokeWidth={2.25} />
-      </ToolbarButton>
-      <ToolbarButton
-        title="Remove link"
-        onClick={() => editor.chain().focus().unsetLink().run()}
-        disabled={!editor.isActive('link')}
-      >
-        <Link2Off size={16} strokeWidth={2.25} />
-      </ToolbarButton>
-      <ToolbarButton
-        title="Upload image (or paste / drop one in)"
-        onClick={onPickImage}
-        disabled={uploading}
-      >
-        {uploading ? (
-          <Loader2 size={16} strokeWidth={2.25} className="animate-spin text-amber" />
-        ) : (
-          <ImagePlus size={16} strokeWidth={2.25} />
-        )}
-      </ToolbarButton>
-      <ToolbarButton
-        title="Horizontal rule"
-        onClick={() => editor.chain().focus().setHorizontalRule().run()}
-      >
-        <Minus size={16} strokeWidth={2.5} />
-      </ToolbarButton>
-
-      <Divider />
-
-      <ToolbarButton
-        title="Undo"
-        onClick={() => editor.chain().focus().undo().run()}
-        disabled={!editor.can().undo()}
-      >
-        <Undo2 size={16} strokeWidth={2.25} />
-      </ToolbarButton>
-      <ToolbarButton
-        title="Redo"
-        onClick={() => editor.chain().focus().redo().run()}
-        disabled={!editor.can().redo()}
-      >
-        <Redo2 size={16} strokeWidth={2.25} />
-      </ToolbarButton>
-    </div>
-  )
-}
+const BAR =
+  'flex items-center gap-0.5 rounded-xl border border-muted/25 bg-elevated/95 p-1 shadow-[0_14px_40px_-12px_rgba(0,0,0,0.85)] backdrop-blur-md'
 
 export default function JournalEditor({ value, onChange }: Props) {
-  // Keep a ref to the live editor so the (once-created) paste/drop handlers
-  // can always reach the current instance.
   const editorRef = useRef<Editor | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
@@ -233,13 +101,10 @@ export default function JournalEditor({ value, onChange }: Props) {
   }
 
   const editor = useEditor({
-    // CRITICAL for SSR: do not render the editor on the server (needs the DOM).
     immediatelyRender: false,
     extensions: [
       StarterKit.configure({
-        // Only H2/H3 in the editorial body (H1 is the article title field).
         heading: { levels: [2, 3] },
-        // StarterKit v3 bundles Link — configure it here (don't add a 2nd Link).
         link: {
           openOnClick: false,
           autolink: true,
@@ -248,16 +113,13 @@ export default function JournalEditor({ value, onChange }: Props) {
       }),
       Image.configure({ inline: false, HTMLAttributes: { loading: 'lazy' } }),
       Placeholder.configure({
-        placeholder: 'Tell the story… (paste or drop an image to upload it)',
+        placeholder: 'Tell the story… select text to format, or use + on an empty line to add an image.',
       }),
     ],
     content: value,
     editorProps: {
-      attributes: {
-        // SAME class as the published article — 1:1 typography while editing.
-        class: 'prose-article focus:outline-none',
-      },
-      // Medium-style: paste an image from the clipboard → upload + insert.
+      attributes: { class: 'prose-article focus:outline-none' },
+      // Medium-style: paste an image → upload + insert.
       handlePaste: (_view, event) => {
         const files = imageFilesFrom((event as ClipboardEvent).clipboardData?.files)
         if (!files.length) return false
@@ -265,7 +127,7 @@ export default function JournalEditor({ value, onChange }: Props) {
         files.forEach((f) => uploadAndInsert(f))
         return true
       },
-      // …or drag an image file straight onto the canvas.
+      // …or drop an image file onto the canvas.
       handleDrop: (view, event) => {
         const e = event as DragEvent
         const files = imageFilesFrom(e.dataTransfer?.files)
@@ -281,26 +143,35 @@ export default function JournalEditor({ value, onChange }: Props) {
 
   editorRef.current = editor
 
-  // Keep the editor in sync if the bound value is replaced externally
-  // (e.g. when an edit-form loads its post after mount).
   useEffect(() => {
     if (!editor) return
     const current = editor.getHTML()
     if (value !== current && value !== undefined) {
       editor.commands.setContent(value || '', { emitUpdate: false })
     }
-    // Only re-sync on external value changes, not on every editor identity tick.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, editor])
 
   async function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    e.target.value = '' // allow re-picking the same file
+    e.target.value = ''
     if (file) await uploadAndInsert(file)
   }
 
+  function setLink() {
+    if (!editor) return
+    const prev = editor.getAttributes('link').href as string | undefined
+    const url = window.prompt('Link URL', prev ?? 'https://')
+    if (url === null) return
+    if (url === '') {
+      editor.chain().focus().extendMarkRange('link').unsetLink().run()
+      return
+    }
+    editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
+  }
+
   return (
-    <div className="w-full">
+    <div className="relative w-full">
       <input
         ref={fileRef}
         type="file"
@@ -308,15 +179,121 @@ export default function JournalEditor({ value, onChange }: Props) {
         className="hidden"
         onChange={onFileChange}
       />
+
+      {/* Pops above a text selection — inline + block formatting. */}
       {editor && (
-        <Toolbar
-          editor={editor}
-          uploading={uploading}
-          onPickImage={() => fileRef.current?.click()}
-        />
+        <BubbleMenu editor={editor} className={BAR} options={{ placement: 'top' }}>
+          <MenuButton
+            title="Bold"
+            onClick={() => editor.chain().focus().toggleBold().run()}
+            active={editor.isActive('bold')}
+          >
+            <Bold size={15} strokeWidth={2.5} />
+          </MenuButton>
+          <MenuButton
+            title="Italic"
+            onClick={() => editor.chain().focus().toggleItalic().run()}
+            active={editor.isActive('italic')}
+          >
+            <Italic size={15} strokeWidth={2.5} />
+          </MenuButton>
+          <Divider />
+          <MenuButton
+            title="Heading 2"
+            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+            active={editor.isActive('heading', { level: 2 })}
+          >
+            <Heading2 size={16} strokeWidth={2.25} />
+          </MenuButton>
+          <MenuButton
+            title="Heading 3"
+            onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+            active={editor.isActive('heading', { level: 3 })}
+          >
+            <Heading3 size={16} strokeWidth={2.25} />
+          </MenuButton>
+          <MenuButton
+            title="Quote"
+            onClick={() => editor.chain().focus().toggleBlockquote().run()}
+            active={editor.isActive('blockquote')}
+          >
+            <Quote size={15} strokeWidth={2.25} />
+          </MenuButton>
+          <Divider />
+          <MenuButton title="Add / edit link" onClick={setLink} active={editor.isActive('link')}>
+            <Link2 size={15} strokeWidth={2.25} />
+          </MenuButton>
+          <MenuButton
+            title="Remove link"
+            onClick={() => editor.chain().focus().unsetLink().run()}
+            disabled={!editor.isActive('link')}
+          >
+            <Link2Off size={15} strokeWidth={2.25} />
+          </MenuButton>
+        </BubbleMenu>
       )}
+
+      {/* Appears at the start of an empty line — insert blocks & images. */}
+      {editor && (
+        <FloatingMenu editor={editor} className={BAR} options={{ placement: 'bottom-start' }}>
+          <MenuButton
+            title="Upload image"
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+          >
+            {uploading ? (
+              <Loader2 size={15} strokeWidth={2.25} className="animate-spin text-amber" />
+            ) : (
+              <ImagePlus size={15} strokeWidth={2.25} />
+            )}
+          </MenuButton>
+          <Divider />
+          <MenuButton
+            title="Heading 2"
+            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+            active={editor.isActive('heading', { level: 2 })}
+          >
+            <Heading2 size={16} strokeWidth={2.25} />
+          </MenuButton>
+          <MenuButton
+            title="Heading 3"
+            onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+            active={editor.isActive('heading', { level: 3 })}
+          >
+            <Heading3 size={16} strokeWidth={2.25} />
+          </MenuButton>
+          <MenuButton
+            title="Quote"
+            onClick={() => editor.chain().focus().toggleBlockquote().run()}
+            active={editor.isActive('blockquote')}
+          >
+            <Quote size={15} strokeWidth={2.25} />
+          </MenuButton>
+          <MenuButton
+            title="Bullet list"
+            onClick={() => editor.chain().focus().toggleBulletList().run()}
+            active={editor.isActive('bulletList')}
+          >
+            <List size={16} strokeWidth={2.25} />
+          </MenuButton>
+          <MenuButton
+            title="Numbered list"
+            onClick={() => editor.chain().focus().toggleOrderedList().run()}
+            active={editor.isActive('orderedList')}
+          >
+            <ListOrdered size={16} strokeWidth={2.25} />
+          </MenuButton>
+          <MenuButton
+            title="Divider"
+            onClick={() => editor.chain().focus().setHorizontalRule().run()}
+          >
+            <Minus size={16} strokeWidth={2.5} />
+          </MenuButton>
+        </FloatingMenu>
+      )}
+
       {uploadErr && (
-        <p className="mb-3 text-sm text-red-400 max-w-[680px] mx-auto">{uploadErr}</p>
+        <p className="mb-3 max-w-[680px] mx-auto text-sm text-red-400">{uploadErr}</p>
       )}
       <EditorContent editor={editor} />
     </div>

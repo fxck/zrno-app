@@ -186,7 +186,7 @@ function Home() {
               Slow-roasted in small batches in the heart of Prague. Bold, dark,
               unmistakably ours.
             </motion.p>
-            <h1 className="font-display t-hero px-4 md:px-10 -mb-[1.5vw] select-none">
+            <h1 className="font-display t-hero px-4 md:px-10 mt-4 md:mt-6 pb-[2vh] select-none">
               {/* No overflow mask at t-hero size: with line-height 0.78 a mask
                   shaves the caps top & bottom. A plain fade + rise shows the
                   full glyph and never clips. */}
