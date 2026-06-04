@@ -79,7 +79,7 @@ function AdminJournalList() {
         </Link>
       }
     >
-      <div className="mb-6 flex items-baseline gap-3">
+      <div className="mb-6 flex items-center gap-4">
         <h1 className="font-display text-4xl">POSTS</h1>
         {data.posts.length > 0 && <TableCount controls={controls} />}
       </div>

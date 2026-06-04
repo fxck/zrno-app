@@ -119,13 +119,17 @@ function Home() {
             willChange: 'transform',
           }}
         />
-        {/* Gradient scrim (kept as its own layer so the photo can move under it) */}
+        {/* Scrim: a light wash up top (so the header reads over the beans),
+            CLEAR through the middle (beans full-strength), then a fade that
+            resolves to full background at the foot — the headline's contrast
+            and a seamless hand-off to the next section, with no flat black
+            band. The photo still parallaxes under this layer. */}
         <div
           aria-hidden
           className="absolute inset-0"
           style={{
             backgroundImage:
-              'linear-gradient(180deg, rgba(11,9,8,0.80) 0%, rgba(11,9,8,0.42) 45%, rgba(11,9,8,0.96) 100%)',
+              'linear-gradient(180deg, rgba(11,9,8,0.55) 0%, rgba(11,9,8,0.08) 22%, rgba(11,9,8,0) 48%, rgba(11,9,8,0.8) 86%, rgba(11,9,8,1) 100%)',
           }}
         />
         <motion.div
@@ -402,10 +406,9 @@ function Home() {
         <div className="md:order-1 flex min-w-0 flex-col justify-center gap-10 p-10 md:p-16 lg:p-24">
           <Reveal
             as="div"
-            className="flex items-center gap-4 font-mono text-xs tracking-[0.2em] text-amber"
+            className="font-mono text-xs tracking-[0.2em] text-amber"
           >
-            <span aria-hidden className="h-px w-12 bg-amber/40" />
-            <span>THE ROASTERY</span>
+            THE ROASTERY
           </Reveal>
 
           <Reveal
@@ -466,7 +469,7 @@ function Home() {
       <section
         id="visit"
         ref={barRef}
-        className="scroll-mt-24 relative mt-24 flex min-h-[90vh] items-end overflow-hidden md:mt-40"
+        className="scroll-mt-24 relative flex min-h-[90vh] items-end overflow-hidden"
       >
         {/* Looping boomerang video of the bar (forward+reverse, so it never
             jumps), parallaxed. Muted/inline/autoplay → treated as decoration
@@ -486,17 +489,18 @@ function Home() {
             poster="/bar-poster.jpg"
           >
             <source src="/bar.mp4" type="video/mp4" />
-            <source src="/bar.webm" type="video/webm" />
           </video>
         </motion.div>
-        {/* film grain — masks the upscaled video's softness/compression */}
+        {/* Film grain — a resolution-independent SVG noise (renders sharp at
+            device pixels), so the upscaled video's softness reads as filmic
+            texture even on retina / full-HD rather than as low-res blur. */}
         <div
           aria-hidden
-          className="absolute inset-0 opacity-[0.10] mix-blend-overlay"
+          className="absolute inset-0 opacity-[0.22] mix-blend-overlay"
           style={{
             backgroundImage:
-              "url(\"data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='140'%20height='140'%3E%3Cfilter%20id='n'%3E%3CfeTurbulence%20type='fractalNoise'%20baseFrequency='0.85'%20numOctaves='2'%20stitchTiles='stitch'/%3E%3C/filter%3E%3Crect%20width='100%25'%20height='100%25'%20filter='url(%23n)'/%3E%3C/svg%3E\")",
-            backgroundSize: '140px 140px',
+              "url(\"data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='120'%20height='120'%3E%3Cfilter%20id='n'%3E%3CfeTurbulence%20type='fractalNoise'%20baseFrequency='0.92'%20numOctaves='3'%20stitchTiles='stitch'/%3E%3C/filter%3E%3Crect%20width='100%25'%20height='100%25'%20filter='url(%23n)'/%3E%3C/svg%3E\")",
+            backgroundSize: '120px 120px',
           }}
         />
         {/* legibility gradient — resolves to FULL background colour at the very

@@ -36,7 +36,7 @@ function AdminSubscribers() {
 
   return (
     <AdminShell email={data.user.email}>
-      <div className="mb-6 flex items-baseline gap-3">
+      <div className="mb-6 flex items-center gap-4">
         <h1 className="font-display text-4xl">SUBSCRIBERS</h1>
         {data.subscribers.length > 0 && <TableCount controls={controls} />}
       </div>

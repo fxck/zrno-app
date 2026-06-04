@@ -154,14 +154,22 @@ export function TableToolbar<T>({
   )
 }
 
-// Compact count for the page title row — "17" normally, "3 / 17" when filtered.
-// Lives next to the <h1> so it never disturbs the filter-bar baseline.
+// A designed count chip for the page title row — a soft amber pill, optically
+// centred to the heading. Shows the total normally, and "shown / total" (with
+// the live count emphasised) when a search/filter is narrowing the set.
 export function TableCount<T>({ controls }: { controls: TableControls<T> }) {
+  const filtered = controls.shown !== controls.total
   return (
-    <span className="font-mono text-sm text-muted tabular-nums">
-      {controls.shown === controls.total
-        ? controls.total
-        : `${controls.shown} / ${controls.total}`}
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-amber/20 bg-amber/10 px-3 py-1 font-mono text-xs tabular-nums leading-none text-amber">
+      {filtered ? (
+        <>
+          <span className="text-cream">{controls.shown}</span>
+          <span className="text-amber/40">/</span>
+          <span>{controls.total}</span>
+        </>
+      ) : (
+        controls.total
+      )}
     </span>
   )
 }
