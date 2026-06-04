@@ -43,12 +43,17 @@ export function BeanRain({
   lines,
   className,
   whole = false,
+  rotate = 0,
 }: {
   lines: Line[]
   className?: string
   /** emit across the whole glyph instead of at the cursor x (single glyphs
       like the tilted hero O) */
   whole?: boolean
+  /** tilt the glyph + its clip mask by this many degrees while keeping the
+      particle gravity vertical, so beans fall straight DOWN inside a tilted
+      letter (the hero O) instead of along its lean */
+  rotate?: number
 }) {
   const reduce = useReducedMotion()
   const fine = usePointerFine()
@@ -82,6 +87,7 @@ export function BeanRain({
     let hovering = false
     let emitAcc = 0
     let emitCount = 0
+    let intensity = 1 // wanders over time → the rain ebbs and surges
     let raf = 0
     let lastT = 0
 
@@ -154,7 +160,19 @@ export function BeanRain({
         // offset* = pre-transform LAYOUT box, so the canvas/mask/glyph stay
         // aligned even when the whole field is rotated by a parent (hero O).
         const baseline = (el.offsetHeight - (ascent + descent)) / 2 + ascent
+        mc.save()
+        if (rotate) {
+          // tilt the glyph in the mask around its bottom-centre — matching the
+          // CSS transform on the visible text — while the bean canvas stays
+          // upright, so the rain still falls straight down inside the tilt.
+          const ox = el.offsetLeft + el.offsetWidth / 2
+          const oy = el.offsetTop + el.offsetHeight
+          mc.translate(ox, oy)
+          mc.rotate((rotate * Math.PI) / 180)
+          mc.translate(-ox, -oy)
+        }
         mc.fillText(text, el.offsetLeft, el.offsetTop + baseline)
+        mc.restore()
       })
       mask = m
     }
@@ -172,9 +190,13 @@ export function BeanRain({
       const dt = Math.min(0.05, (t - lastT) / 1000 || 0)
       lastT = t
 
-      // Emit from the cursor x (or across the glyph) while hovering.
+      // Emit from the cursor x (or across the glyph) while hovering. The
+      // intensity random-walks so the stream isn't metronomic — it ebbs to a
+      // trickle and surges to heavier bursts, like real rain.
       if (hovering) {
-        emitAcc += emitRate() * dt
+        intensity += (Math.random() - 0.5) * dt * 2.4
+        intensity = Math.max(0.15, Math.min(1.7, intensity))
+        emitAcc += emitRate() * intensity * dt
         while (emitAcc >= 1) {
           emitAcc -= 1
           const b = firstDead()
@@ -251,7 +273,7 @@ export function BeanRain({
       host.removeEventListener('mouseleave', onLeave)
       if (raf) cancelAnimationFrame(raf)
     }
-  }, [enabled, linesKey, whole])
+  }, [enabled, linesKey, whole, rotate])
 
   return (
     <span ref={hostRef} className={'relative inline-block ' + (className ?? '')}>
@@ -272,7 +294,19 @@ export function BeanRain({
               delay: reduce ? 0 : i * 0.12,
             }}
           >
-            {text}
+            {rotate ? (
+              <span
+                className="inline-block"
+                style={{
+                  transform: `rotate(${rotate}deg)`,
+                  transformOrigin: '50% 100%',
+                }}
+              >
+                {text}
+              </span>
+            ) : (
+              text
+            )}
           </motion.span>
         )
       })}

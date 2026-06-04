@@ -165,20 +165,19 @@ function Home() {
               >
                 <BeanRain lines={['ZRN']} />
                 {reduce ? (
-                  <BeanRain
-                    lines={['O']}
-                    whole
-                    className="ml-[0.02em] origin-bottom rotate-[18deg]"
-                  />
+                  <BeanRain lines={['O']} whole rotate={18} className="ml-[0.02em]" />
                 ) : (
+                  // Wrapper tips the O from upright → leaning on load (bottom
+                  // pivot). At rest the wrapper is 0°, so the canvas is upright
+                  // and the rain falls straight down inside the tilted O.
                   <motion.span
                     className="ml-[0.02em] inline-block"
                     style={{ transformOrigin: '50% 100%' }}
-                    initial={{ rotate: 0 }}
-                    animate={{ rotate: 18 }}
+                    initial={{ rotate: -18 }}
+                    animate={{ rotate: 0 }}
                     transition={{ duration: 0.9, ease: EASE_OUT, delay: 1.15 }}
                   >
-                    <BeanRain lines={['O']} whole />
+                    <BeanRain lines={['O']} whole rotate={18} />
                   </motion.span>
                 )}
               </motion.span>
