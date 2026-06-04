@@ -232,49 +232,26 @@ function Home() {
         </div>
       </section>
 
-      {/* STORY */}
+      {/* STORY / ROASTERY */}
       <section id="story" className="scroll-mt-24 px-6 md:px-14 py-28 md:py-40">
-        <div className="grid md:grid-cols-[1fr_2fr_1fr] gap-10 md:gap-12 items-start">
-          <Reveal as="div" className="font-mono text-xs leading-relaxed" delay={0.05}>
-            <div className="text-amber tracking-[0.15em]">(01) — THE ROASTERY</div>
-            <div className="text-muted mt-3">Roasted weekly in Žižkov, Prague 3.</div>
-          </Reveal>
-          <div className="flex flex-col items-center gap-8">
-            {/* A flowing paragraph — let it wrap naturally and reveal as one
-                gentle fade-up. (Was per-line masked, which clipped + produced
-                ragged double-wrapped lines.) */}
-            <Reveal
-              as="p"
-              className="font-body text-2xl md:text-3xl font-medium leading-snug text-center text-cream text-balance"
-            >
-              We source green beans from single estates, then roast them dark and
-              slow in a converted workshop. No shortcuts, no compromise — only the
-              deep, caramelised character Prague has come to know us for.
-            </Reveal>
-            <Reveal
-              as="div"
-              className="font-mono text-[11px] tracking-[0.2em] text-taupe"
-              delay={0.2}
-            >
-              — TOMÁŠ &amp; LENKA, FOUNDERS
-            </Reveal>
-          </div>
-          <Reveal
-            as="div"
-            className="font-mono text-xs tracking-[0.15em] text-cream md:text-right"
-            delay={0.1}
-          >
-            <Link to="/journal" className="zrno-underline relative">
-              READ THE JOURNAL →
-            </Link>
-          </Reveal>
-        </div>
+        <Reveal
+          as="div"
+          className="flex items-center gap-4 font-mono text-xs tracking-[0.2em] text-amber"
+        >
+          <span>(01)</span>
+          <span aria-hidden className="h-px w-12 bg-amber/40" />
+          <span>THE ROASTERY</span>
+        </Reveal>
 
-        <div id="roastery" className="scroll-mt-24 mt-16 md:mt-24 md:pl-[18%]">
-          <Reveal as="div" y={36} className="max-w-2xl">
+        <div className="mt-10 md:mt-16 grid gap-10 md:grid-cols-2 md:gap-16 items-stretch">
+          {/* Feature image — a deliberate, full-height column with an overlaid
+              index numeral + captions. (Was a floating panel offset to one
+              side with dead space beside it.) */}
+          <Reveal as="div" y={36}>
             <div
+              id="roastery"
               ref={roastRef}
-              className="relative h-64 md:h-80 overflow-hidden flex items-end p-6"
+              className="scroll-mt-24 relative h-[360px] sm:h-[440px] md:h-full md:min-h-[560px] overflow-hidden flex flex-col justify-between p-7"
             >
               <motion.div
                 aria-hidden
@@ -290,14 +267,71 @@ function Home() {
                 className="absolute inset-0"
                 style={{
                   backgroundImage:
-                    'linear-gradient(0deg, rgba(11,9,8,0.72) 0%, rgba(11,9,8,0.08) 55%)',
+                    'linear-gradient(180deg, rgba(11,9,8,0.55) 0%, rgba(11,9,8,0.04) 42%, rgba(11,9,8,0.88) 100%)',
                 }}
               />
-              <span className="relative z-10 font-mono text-[11px] tracking-[0.2em] text-cream/70">
-                ROASTERY · ŽIŽKOV
+              <span className="relative z-10 font-display text-7xl md:text-8xl leading-none text-cream/20 select-none">
+                01
               </span>
+              <div className="relative z-10 flex items-end justify-between font-mono text-[11px] tracking-[0.2em]">
+                <span className="text-cream/85">ROASTERY · ŽIŽKOV</span>
+                <span className="text-cream/45">EST. 2014</span>
+              </div>
             </div>
           </Reveal>
+
+          {/* Text column — quote, attribution, fact strip, journal link */}
+          <div className="flex flex-col justify-center gap-8">
+            <Reveal
+              as="p"
+              className="font-body text-2xl md:text-[28px] lg:text-[32px] font-medium leading-snug text-cream text-balance"
+            >
+              We source green beans from single estates, then roast them dark and
+              slow in a converted workshop. No shortcuts, no compromise — only the
+              deep, caramelised character Prague has come to know us for.
+            </Reveal>
+
+            <Reveal
+              as="div"
+              className="font-mono text-[11px] tracking-[0.2em] text-taupe"
+              delay={0.1}
+            >
+              — TOMÁŠ &amp; LENKA, FOUNDERS
+            </Reveal>
+
+            <div className="border-t hairline" />
+
+            <Reveal
+              as="div"
+              stagger
+              staggerAmount={0.1}
+              className="grid grid-cols-3 gap-4"
+            >
+              {[
+                ['Roasted', 'Weekly'],
+                ['Beans', 'Single-estate'],
+                ['Where', 'Žižkov'],
+              ].map(([k, v]) => (
+                <div key={k}>
+                  <div className="font-mono text-[10px] tracking-[0.2em] text-muted uppercase">
+                    {k}
+                  </div>
+                  <div className="mt-2 font-display text-lg md:text-2xl leading-none text-cream">
+                    {v}
+                  </div>
+                </div>
+              ))}
+            </Reveal>
+
+            <Reveal as="div" delay={0.1}>
+              <Link
+                to="/journal"
+                className="zrno-underline relative font-mono text-xs tracking-[0.18em] text-cream"
+              >
+                READ THE JOURNAL →
+              </Link>
+            </Reveal>
+          </div>
         </div>
       </section>
 
