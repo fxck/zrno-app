@@ -201,16 +201,19 @@ function Home() {
                   >
                     <motion.span
                       className="inline-block"
-                      style={{ transformOrigin: '50% 100%' }}
+                      style={{ transformOrigin: '50% 100%', willChange: 'transform' }}
                       initial={{ rotate: -16 }}
                       animate={{ rotate: 0 }}
                       transition={{
-                        // smooth settle into the lean — overdamped, so it eases
-                        // in and rests, with no bounce-back wobble
-                        type: 'spring',
-                        stiffness: 110,
-                        damping: 26,
-                        mass: 1,
+                        // A fixed-duration cubic ease, NOT a spring: an
+                        // overdamped spring crawls toward 0° with an endless
+                        // asymptotic tail, and those final sub-degree steps
+                        // re-rasterize the big glyph → visible stutter at the
+                        // finish. A tween eases into the lean and *ends*
+                        // cleanly. will-change composites the rotation on the
+                        // GPU so it stays smooth throughout.
+                        duration: 0.9,
+                        ease: EASE_OUT,
                         delay: 1.05,
                       }}
                     >
