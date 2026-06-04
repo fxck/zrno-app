@@ -214,7 +214,11 @@ function Home() {
                         // GPU so it stays smooth throughout.
                         duration: 0.9,
                         ease: EASE_OUT,
-                        delay: 1.05,
+                        // Hold until the O has fully RISEN before it tips: the
+                        // rise spring (delay 0.79) takes ~0.6s to settle, so the
+                        // tilt waits to ~1.5s — pop finishes, a clear beat, then
+                        // it leans. No overlap of the two motions.
+                        delay: 1.5,
                       }}
                     >
                       <BeanRain lines={['O']} whole rotate={18} beanScale={0.6} />
