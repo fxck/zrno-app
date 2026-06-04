@@ -40,10 +40,18 @@ const MARQUEE = [
   'SPECIALTY COFFEE · PRAGUE',
 ]
 
+const ROASTERY_IMAGES = ['/roastery.jpg', '/roastery-2.jpg', '/roastery-3.jpg']
+
 function Home() {
   const [subEmail, setSubEmail] = useState('')
   const [subState, setSubState] = useState<'idle' | 'busy' | 'done' | 'error'>('idle')
   const [subMsg, setSubMsg] = useState('')
+
+  // Roastery photo carousel.
+  const [roastIdx, setRoastIdx] = useState(0)
+  const roastCount = ROASTERY_IMAGES.length
+  const goRoast = (dir: number) =>
+    setRoastIdx((i) => (i + dir + roastCount) % roastCount)
 
   const reduce = useReducedMotion()
   const fine = usePointerFine()
@@ -232,106 +240,149 @@ function Home() {
         </div>
       </section>
 
-      {/* STORY / ROASTERY */}
-      <section id="story" className="scroll-mt-24 px-6 md:px-14 py-28 md:py-40">
-        <Reveal
-          as="div"
-          className="flex items-center gap-4 font-mono text-xs tracking-[0.2em] text-amber"
+      {/* STORY / ROASTERY — full-bleed left/right split (mirrors VISIT) */}
+      <section id="story" className="scroll-mt-24 grid md:grid-cols-2">
+        {/* Image — full-bleed, parallax, overlaid index numeral + captions */}
+        <div
+          id="roastery"
+          ref={roastRef}
+          className="scroll-mt-24 relative min-h-[420px] md:min-h-[620px] overflow-hidden flex flex-col justify-between p-8"
         >
-          <span>(01)</span>
-          <span aria-hidden className="h-px w-12 bg-amber/40" />
-          <span>THE ROASTERY</span>
-        </Reveal>
-
-        <div className="mt-10 md:mt-16 grid gap-10 md:grid-cols-2 md:gap-16 items-stretch">
-          {/* Feature image — a deliberate, full-height column with an overlaid
-              index numeral + captions. (Was a floating panel offset to one
-              side with dead space beside it.) */}
-          <Reveal as="div" y={36}>
-            <div
-              id="roastery"
-              ref={roastRef}
-              className="scroll-mt-24 relative h-[360px] sm:h-[440px] md:h-full md:min-h-[560px] overflow-hidden flex flex-col justify-between p-7"
-            >
+          {/* Parallax wrapper holding the crossfading carousel images */}
+          <motion.div
+            aria-hidden
+            className="absolute inset-[-12%]"
+            style={{ y: reduce ? 0 : roastY, willChange: 'transform' }}
+          >
+            <AnimatePresence initial={false}>
               <motion.div
-                aria-hidden
-                className="absolute inset-[-12%] bg-cover bg-center"
-                style={{
-                  backgroundImage: 'url(/roastery.jpg)',
-                  y: reduce ? 0 : roastY,
-                  willChange: 'transform',
-                }}
+                key={roastIdx}
+                className="absolute inset-0 bg-cover bg-center"
+                style={{ backgroundImage: `url(${ROASTERY_IMAGES[roastIdx]})` }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.6, ease: EASE_OUT }}
               />
-              <div
-                aria-hidden
-                className="absolute inset-0"
-                style={{
-                  backgroundImage:
-                    'linear-gradient(180deg, rgba(11,9,8,0.55) 0%, rgba(11,9,8,0.04) 42%, rgba(11,9,8,0.88) 100%)',
-                }}
-              />
-              <span className="relative z-10 font-display text-7xl md:text-8xl leading-none text-cream/20 select-none">
-                01
-              </span>
-              <div className="relative z-10 flex items-end justify-between font-mono text-[11px] tracking-[0.2em]">
-                <span className="text-cream/85">ROASTERY · ŽIŽKOV</span>
-                <span className="text-cream/45">EST. 2014</span>
-              </div>
+            </AnimatePresence>
+          </motion.div>
+
+          <div
+            aria-hidden
+            className="absolute inset-0"
+            style={{
+              backgroundImage:
+                'linear-gradient(180deg, rgba(11,9,8,0.55) 0%, rgba(11,9,8,0.04) 42%, rgba(11,9,8,0.88) 100%)',
+            }}
+          />
+
+          {/* Top: big slide number (doubles as the carousel index) */}
+          <div className="relative z-10 flex items-start justify-between">
+            <AnimatePresence mode="wait">
+              <motion.span
+                key={roastIdx}
+                initial={reduce ? false : { opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={reduce ? { opacity: 0 } : { opacity: 0, y: 8 }}
+                transition={{ duration: 0.3, ease: EASE_OUT }}
+                className="font-display text-7xl md:text-8xl leading-none text-cream/25 select-none"
+              >
+                {String(roastIdx + 1).padStart(2, '0')}
+              </motion.span>
+            </AnimatePresence>
+            <span className="mt-3 font-mono text-[11px] tracking-[0.2em] text-cream/45 tabular-nums">
+              / {String(roastCount).padStart(2, '0')}
+            </span>
+          </div>
+
+          {/* Bottom: caption + prev/next arrows */}
+          <div className="relative z-10 flex items-end justify-between gap-4">
+            <span className="font-mono text-[11px] tracking-[0.2em] text-cream/85">
+              ROASTERY · ŽIŽKOV
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => goRoast(-1)}
+                aria-label="Previous photo"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-cream/30 text-cream/80 transition-colors hover:border-amber hover:text-amber"
+              >
+                ←
+              </button>
+              <button
+                type="button"
+                onClick={() => goRoast(1)}
+                aria-label="Next photo"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-cream/30 text-cream/80 transition-colors hover:border-amber hover:text-amber"
+              >
+                →
+              </button>
             </div>
+          </div>
+        </div>
+
+        {/* Text — quote, attribution, fact strip, journal link.
+            min-w-0 lets the column shrink below its content's intrinsic width
+            so the quote wraps instead of overflowing the viewport. */}
+        <div className="flex min-w-0 flex-col justify-center gap-8 p-8 md:p-14 lg:p-16">
+          <Reveal
+            as="div"
+            className="flex items-center gap-4 font-mono text-xs tracking-[0.2em] text-amber"
+          >
+            <span>(01)</span>
+            <span aria-hidden className="h-px w-12 bg-amber/40" />
+            <span>THE ROASTERY</span>
           </Reveal>
 
-          {/* Text column — quote, attribution, fact strip, journal link */}
-          <div className="flex flex-col justify-center gap-8">
-            <Reveal
-              as="p"
-              className="font-body text-2xl md:text-[28px] lg:text-[32px] font-medium leading-snug text-cream text-balance"
-            >
-              We source green beans from single estates, then roast them dark and
-              slow in a converted workshop. No shortcuts, no compromise — only the
-              deep, caramelised character Prague has come to know us for.
-            </Reveal>
+          <Reveal
+            as="p"
+            className="max-w-xl font-body text-2xl md:text-[26px] lg:text-3xl font-medium leading-snug text-cream text-balance"
+          >
+            We source green beans from single estates, then roast them dark and
+            slow in a converted workshop. No shortcuts, no compromise — only the
+            deep, caramelised character Prague has come to know us for.
+          </Reveal>
 
-            <Reveal
-              as="div"
-              className="font-mono text-[11px] tracking-[0.2em] text-taupe"
-              delay={0.1}
-            >
-              — TOMÁŠ &amp; LENKA, FOUNDERS
-            </Reveal>
+          <Reveal
+            as="div"
+            className="font-mono text-[11px] tracking-[0.2em] text-taupe"
+            delay={0.1}
+          >
+            — TOMÁŠ &amp; LENKA, FOUNDERS
+          </Reveal>
 
-            <div className="border-t hairline" />
+          <div className="border-t hairline" />
 
-            <Reveal
-              as="div"
-              stagger
-              staggerAmount={0.1}
-              className="grid grid-cols-3 gap-4"
-            >
-              {[
-                ['Roasted', 'Weekly'],
-                ['Beans', 'Single-estate'],
-                ['Where', 'Žižkov'],
-              ].map(([k, v]) => (
-                <div key={k}>
-                  <div className="font-mono text-[10px] tracking-[0.2em] text-muted uppercase">
-                    {k}
-                  </div>
-                  <div className="mt-2 font-display text-lg md:text-2xl leading-none text-cream">
-                    {v}
-                  </div>
+          <Reveal
+            as="div"
+            stagger
+            staggerAmount={0.1}
+            className="grid grid-cols-3 gap-4"
+          >
+            {[
+              ['Roasted', 'Weekly'],
+              ['Beans', 'Single-estate'],
+              ['Where', 'Žižkov'],
+            ].map(([k, v]) => (
+              <div key={k} className="min-w-0">
+                <div className="font-mono text-[10px] tracking-[0.2em] text-muted uppercase">
+                  {k}
                 </div>
-              ))}
-            </Reveal>
+                <div className="mt-2 font-display text-lg md:text-xl leading-none text-cream break-words">
+                  {v}
+                </div>
+              </div>
+            ))}
+          </Reveal>
 
-            <Reveal as="div" delay={0.1}>
-              <Link
-                to="/journal"
-                className="zrno-underline relative font-mono text-xs tracking-[0.18em] text-cream"
-              >
-                READ THE JOURNAL →
-              </Link>
-            </Reveal>
-          </div>
+          <Reveal as="div" delay={0.1}>
+            <Link
+              to="/journal"
+              className="zrno-underline relative font-mono text-xs tracking-[0.18em] text-cream"
+            >
+              READ THE JOURNAL →
+            </Link>
+          </Reveal>
         </div>
       </section>
 
