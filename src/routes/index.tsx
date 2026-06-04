@@ -180,35 +180,38 @@ function Home() {
                     className="ml-[0.02em]"
                   />
                 ) : (
-                  // The O pops in upright (last in the sequence), then — a beat
-                  // later — wobbles into its bean lean on a springy rotate with
-                  // real overshoot/settle (low damping = a couple of wobbles).
-                  // Pop (scale) and wobble (rotate) are separate layers so they
-                  // don't fight; bottom-centre pivot keeps the rain upright.
+                  // The O rises in upright (last in the sequence), then — a beat
+                  // later — tips into its bean lean. Both layers are now
+                  // OVER/critically-damped (ζ≥1): the rise settles cleanly and
+                  // the tilt eases into the lean like a heavy object coming to
+                  // rest — no overshoot, no wobble, nothing cartoonish. Rise (y)
+                  // and tilt (rotate) are separate layers so they don't fight;
+                  // bottom-centre pivot keeps the rain falling straight down.
                   <motion.span
                     className="ml-[0.02em] inline-block"
-                    initial={{ y: '0.5em', opacity: 0 }}
+                    initial={{ y: '0.42em', opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{
                       type: 'spring',
-                      stiffness: 300,
-                      damping: 22,
-                      mass: 0.9,
+                      stiffness: 240,
+                      damping: 32,
+                      mass: 1,
                       delay: 0.79,
                     }}
                   >
                     <motion.span
                       className="inline-block"
                       style={{ transformOrigin: '50% 100%' }}
-                      initial={{ rotate: -18 }}
+                      initial={{ rotate: -16 }}
                       animate={{ rotate: 0 }}
                       transition={{
-                        // gentle settle — one soft wobble, then rests at the lean
+                        // smooth settle into the lean — overdamped, so it eases
+                        // in and rests, with no bounce-back wobble
                         type: 'spring',
-                        stiffness: 150,
-                        damping: 13,
-                        mass: 0.9,
-                        delay: 1.2,
+                        stiffness: 110,
+                        damping: 26,
+                        mass: 1,
+                        delay: 1.05,
                       }}
                     >
                       <BeanRain lines={['O']} whole rotate={18} beanScale={0.6} />

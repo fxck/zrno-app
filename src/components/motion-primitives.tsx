@@ -442,6 +442,18 @@ export function useActiveSection(ids: string[]): string {
           if (e.isIntersecting) ratios.set(e.target.id, e.intersectionRatio)
           else ratios.delete(e.target.id)
         }
+        if (!ratios.size) {
+          // Nothing in the centre band. This happens in the whitespace BETWEEN
+          // sections (e.g. the margin above VISIT) as well as up in the hero.
+          // Keep the current highlight while passing through inter-section gaps
+          // — so the shared-layout underline tweens across instead of
+          // unmounting and popping — but clear it once we're back ABOVE the
+          // first section (the hero), where nothing should read as active.
+          const aboveAll =
+            els[0].getBoundingClientRect().top > window.innerHeight / 2
+          setActive((prev) => (aboveAll ? '' : prev))
+          return
+        }
         let best = ''
         let bestRatio = -1
         for (const [id, r] of ratios) {
