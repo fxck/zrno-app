@@ -32,7 +32,7 @@ function OrderPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState<OrderResult | null>(null)
-  const [confirming, setConfirming] = useState(Boolean(session_id) && !canceled)
+  const [confirmFailed, setConfirmFailed] = useState(false)
 
   // Returning from Stripe Checkout: a session_id (and not canceled) → confirm
   // it with the server, which marks the order paid + shows the receipt. Keyed
@@ -40,7 +40,6 @@ function OrderPage() {
   useEffect(() => {
     if (!session_id || canceled || done) return
     let cancelledFx = false
-    setConfirming(true)
     fetch('/api/checkout/confirm', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -54,15 +53,24 @@ function OrderPage() {
           setDone({ orderId: d.orderId, total: d.total, status: d.status })
         } else {
           setError(d.error || 'We could not confirm your payment.')
+          setConfirmFailed(true)
         }
       })
-      .catch(() => !cancelledFx && setError('We could not confirm your payment.'))
-      .finally(() => !cancelledFx && setConfirming(false))
+      .catch(() => {
+        if (cancelledFx) return
+        setError('We could not confirm your payment.')
+        setConfirmFailed(true)
+      })
     return () => {
       cancelledFx = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session_id, canceled])
+
+  // Returning from Checkout → never flash the order form. Derived from
+  // session_id each render (not one-time state) so a late-resolving search
+  // param can't let the form paint for a frame first.
+  const showConfirming = Boolean(session_id) && !canceled && !done && !confirmFailed
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -109,7 +117,7 @@ function OrderPage() {
 
       {done ? (
         <Confirmation result={done} />
-      ) : confirming ? (
+      ) : showConfirming ? (
         <ConfirmingView />
       ) : (
         <main className="px-6 md:px-14 py-12 md:py-16 grid lg:grid-cols-[1.4fr_1fr] gap-12 max-w-6xl">
