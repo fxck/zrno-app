@@ -1,8 +1,12 @@
-import { createServerFn } from '@tanstack/react-start'
-import { getRequest } from '@tanstack/react-start/server'
-import { auth } from '../auth'
 import { getPool } from '../db'
 import { ensureDb } from '../migrate'
+
+// NOTE: server-only module. It is imported exclusively by other server code —
+// the write paths (lib/server, api routes) and the /api/admin/* search route
+// handlers. The browser talks to those API routes over fetch and never imports
+// this file, so better-auth / pg / the meili client stay out of the client
+// bundle. (Importing this from a client component pulls kysely into the client
+// build and breaks rolldown — see /api/admin/search.ts.)
 
 /* ------------------------------------------------------------------ *
  * Meilisearch — back-office search.
@@ -270,17 +274,12 @@ export async function removeFromIndex(name: IndexName, id: string) {
   }
 }
 
-// --- query (admin-gated) ----------------------------------------------------
-
-async function requireAdmin() {
-  const request = getRequest()
-  const session = await auth.api.getSession({ headers: request.headers })
-  return Boolean(session?.user)
-}
+// --- query ------------------------------------------------------------------
+// Auth is enforced by the calling API route handler, not here.
 
 export type SearchHit = {
   id: string
-  type: IndexName extends never ? string : 'order' | 'subscriber' | 'post'
+  type: 'order' | 'subscriber' | 'post'
   title: string
   subtitle: string
   url: string
@@ -324,49 +323,43 @@ const GROUP_LABEL: Record<string, string> = {
   posts: 'Journal',
 }
 
-export const adminSearch = createServerFn({ method: 'GET' })
-  .inputValidator((q: string) => q)
-  .handler(
-    async ({
-      data: q,
-    }): Promise<
-      | { authed: false }
-      | { authed: true; enabled: boolean; q: string; groups: SearchGroup[] }
-    > => {
-      if (!(await requireAdmin())) return { authed: false }
-      const query = (q ?? '').trim()
-      if (!searchEnabled()) return { authed: true, enabled: false, q: query, groups: [] }
-      if (!query) return { authed: true, enabled: true, q: query, groups: [] }
+export async function searchAdmin(
+  q: string,
+): Promise<{ enabled: boolean; q: string; groups: SearchGroup[] }> {
+  const query = (q ?? '').trim()
+  if (!searchEnabled()) return { enabled: false, q: query, groups: [] }
+  if (!query) return { enabled: true, q: query, groups: [] }
 
-      await ensureSearch()
-      const { results } = await meili('/multi-search', {
-        method: 'POST',
-        body: JSON.stringify({
-          queries: (['orders', 'subscribers', 'posts'] as IndexName[]).map((indexUid) => ({
-            indexUid,
-            q: query,
-            limit: 6,
-          })),
-        }),
-      })
+  await ensureSearch()
+  const { results } = await meili('/multi-search', {
+    method: 'POST',
+    body: JSON.stringify({
+      queries: (['orders', 'subscribers', 'posts'] as IndexName[]).map((indexUid) => ({
+        indexUid,
+        q: query,
+        limit: 6,
+      })),
+    }),
+  })
 
-      const groups: SearchGroup[] = []
-      for (const r of results as any[]) {
-        if (!r.hits?.length) continue
-        groups.push({
-          type: r.indexUid,
-          label: GROUP_LABEL[r.indexUid] ?? r.indexUid,
-          hits: r.hits.map((h: any) => mapHit(r.indexUid, h)),
-        })
-      }
-      return { authed: true, enabled: true, q: query, groups }
-    },
-  )
+  const groups: SearchGroup[] = []
+  for (const r of results as any[]) {
+    if (!r.hits?.length) continue
+    groups.push({
+      type: r.indexUid,
+      label: GROUP_LABEL[r.indexUid] ?? r.indexUid,
+      hits: r.hits.map((h: any) => mapHit(r.indexUid, h)),
+    })
+  }
+  return { enabled: true, q: query, groups }
+}
 
 // Full rebuild from Postgres — the palette's "Reindex" safety valve.
-export const reindexAll = createServerFn({ method: 'POST' }).handler(async () => {
-  if (!(await requireAdmin())) return { authed: false as const }
-  if (!searchEnabled()) return { authed: true as const, enabled: false as const }
+export async function reindexAllNow(): Promise<{
+  enabled: boolean
+  counts?: Record<string, number>
+}> {
+  if (!searchEnabled()) return { enabled: false }
   await ensureSearch()
   const counts: Record<string, number> = {}
   for (const name of Object.keys(SETTINGS) as IndexName[]) {
@@ -377,5 +370,5 @@ export const reindexAll = createServerFn({ method: 'POST' }).handler(async () =>
     const stats = await meili(`/indexes/${name}/stats`)
     counts[name] = stats.numberOfDocuments ?? 0
   }
-  return { authed: true as const, enabled: true as const, counts }
-})
+  return { enabled: true, counts }
+}

@@ -1,8 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from '@tanstack/react-router'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { adminSearch, reindexAll, type SearchGroup } from '../lib/server/search'
 import { EASE_OUT } from './motion-primitives'
+
+// Local mirror of the API shapes (the client never imports the server module).
+type SearchHit = {
+  id: string
+  type: string
+  title: string
+  subtitle: string
+  url: string
+  badge?: string
+}
+type SearchGroup = { type: string; label: string; hits: SearchHit[] }
 
 /* ------------------------------------------------------------------ *
  * CommandPalette — the back-office ⌘K.
@@ -92,16 +102,23 @@ export function CommandPalette() {
     const id = ++reqId.current
     const t = setTimeout(async () => {
       try {
-        const res = await adminSearch({ data: query })
+        const r = await fetch(`/api/admin/search?q=${encodeURIComponent(query)}`)
         if (id !== reqId.current) return // a newer keystroke won
-        if (!res.authed) {
+        if (r.status === 401) {
           setOpen(false)
           router.navigate({ to: '/admin' } as any)
           return
         }
+        const res = (await r.json()) as {
+          enabled: boolean
+          groups: SearchGroup[]
+        }
+        if (id !== reqId.current) return
         setEnabled(res.enabled)
-        setGroups(res.groups)
+        setGroups(res.groups ?? [])
         setSel(0)
+      } catch {
+        if (id === reqId.current) setGroups([])
       } finally {
         if (id === reqId.current) setLoading(false)
       }
@@ -180,12 +197,20 @@ export function CommandPalette() {
     setReindexing(true)
     setReindexNote(null)
     try {
-      const res = await reindexAll()
-      if ('counts' in res && res.counts) {
+      const r = await fetch('/api/admin/reindex', { method: 'POST' })
+      const res = (await r.json()) as {
+        enabled?: boolean
+        counts?: Record<string, number>
+      }
+      if (res.counts) {
         const total = Object.values(res.counts).reduce((a, b) => a + b, 0)
         setReindexNote(`Reindexed ${total} records`)
-      } else if ('enabled' in res && !res.enabled) {
+        // refresh current query against the rebuilt index
+        if (q.trim()) setQ((s) => s)
+      } else if (res.enabled === false) {
         setReindexNote('Search service not configured')
+      } else {
+        setReindexNote('Reindex failed')
       }
     } catch {
       setReindexNote('Reindex failed')
