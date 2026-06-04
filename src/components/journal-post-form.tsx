@@ -139,9 +139,9 @@ export default function JournalPostForm({ post }: Props) {
       </header>
 
       <main className="px-6 md:px-12 py-10">
-        <div className="max-w-3xl mx-auto space-y-6">
+        <div className="max-w-3xl mx-auto space-y-10">
           {error && (
-            <p className="bg-red-500/10 text-red-400 text-sm px-4 py-3 border border-red-500/20">
+            <p className="rounded-md bg-red-500/10 text-red-400 text-sm px-4 py-3 border border-red-500/20">
               {error}
             </p>
           )}
@@ -155,86 +155,82 @@ export default function JournalPostForm({ post }: Props) {
             className="w-full resize-none bg-transparent font-display text-4xl md:text-5xl leading-[1.04] text-cream placeholder:text-muted/50 outline-none"
           />
 
-          {/* Post settings — slug + excerpt paired with the cover, balanced
-              so neither column strands the other in empty space. */}
-          <div className="rounded-xl border border-muted/15 bg-surface/50 p-5 sm:p-6">
-            <div className="grid gap-6 sm:grid-cols-2">
-              <div className="space-y-5">
-                <div className="space-y-1.5">
-                  <Label htmlFor="slug">Slug</Label>
-                  <Input
-                    id="slug"
-                    value={slug}
-                    onChange={(e) => {
-                      slugTouched.current = true
-                      setSlug(e.target.value)
-                    }}
-                    onBlur={(e) => setSlug(slugify(e.target.value))}
-                    placeholder="auto-from-title"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="excerpt">Excerpt</Label>
-                  <textarea
-                    id="excerpt"
-                    value={excerpt}
-                    onChange={(e) => setExcerpt(e.target.value)}
-                    rows={3}
-                    placeholder="One or two sentences for the journal index."
-                    className="w-full resize-y rounded-md bg-elevated px-3.5 py-2.5 text-sm leading-relaxed text-cream placeholder:text-muted outline-none focus:ring-2 focus:ring-amber/40"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label>Cover image</Label>
-                <input
-                  ref={coverInputRef}
-                  type="file"
-                  accept={ACCEPT_IMAGE}
-                  className="hidden"
-                  onChange={onCoverFile}
+          {/* Cover — a full-width banner, like the published article header. */}
+          <div className="space-y-3">
+            <Label>Cover image</Label>
+            <input
+              ref={coverInputRef}
+              type="file"
+              accept={ACCEPT_IMAGE}
+              className="hidden"
+              onChange={onCoverFile}
+            />
+            {cover ? (
+              <div className="group relative aspect-[3/1] w-full overflow-hidden rounded-lg border border-muted/15 bg-elevated">
+                <img
+                  key={cover}
+                  src={cover}
+                  alt="Cover preview"
+                  className="h-full w-full object-cover"
+                  onError={(e) => (e.currentTarget.style.opacity = '0.15')}
                 />
-                {cover ? (
-                  <div className="group relative aspect-[16/10] w-full overflow-hidden rounded-md border border-muted/20 bg-elevated">
-                    <img
-                      key={cover}
-                      src={cover}
-                      alt="Cover preview"
-                      className="h-full w-full object-cover"
-                      onError={(e) => (e.currentTarget.style.opacity = '0.15')}
-                    />
-                    <div className="absolute inset-0 flex items-center justify-center gap-2 bg-espresso/70 opacity-0 backdrop-blur-[2px] transition-opacity duration-200 group-hover:opacity-100">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        disabled={coverBusy}
-                        onClick={() => coverInputRef.current?.click()}
-                      >
-                        {coverBusy ? 'Uploading…' : 'Replace'}
-                      </Button>
-                      <Button type="button" size="sm" variant="ghost" onClick={() => setCover('')}>
-                        Remove
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <button
+                <div className="absolute inset-0 flex items-center justify-center gap-3 bg-espresso/70 opacity-0 backdrop-blur-[2px] transition-opacity duration-200 group-hover:opacity-100">
+                  <Button
                     type="button"
-                    onClick={() => coverInputRef.current?.click()}
+                    size="sm"
+                    variant="outline"
                     disabled={coverBusy}
-                    className="flex aspect-[16/10] w-full flex-col items-center justify-center gap-2 rounded-md border border-dashed border-muted/40 bg-elevated/40 text-taupe transition-colors hover:border-amber/50 hover:text-cream disabled:opacity-60"
+                    onClick={() => coverInputRef.current?.click()}
                   >
-                    <ImagePlus size={20} strokeWidth={1.75} />
-                    <span className="font-mono text-[11px] tracking-[0.16em]">
-                      {coverBusy ? 'UPLOADING…' : 'UPLOAD COVER'}
-                    </span>
-                    <span className="text-[11px] text-muted">JPEG · PNG · WebP — 8 MB</span>
-                  </button>
-                )}
-                {coverErr && <p className="text-red-400 text-xs">{coverErr}</p>}
+                    {coverBusy ? 'Uploading…' : 'Replace'}
+                  </Button>
+                  <Button type="button" size="sm" variant="ghost" onClick={() => setCover('')}>
+                    Remove
+                  </Button>
+                </div>
               </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => coverInputRef.current?.click()}
+                disabled={coverBusy}
+                className="flex aspect-[3/1] w-full flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-muted/30 bg-elevated/30 text-taupe transition-colors hover:border-amber/50 hover:text-cream disabled:opacity-60"
+              >
+                <ImagePlus size={26} strokeWidth={1.5} />
+                <span className="font-mono text-[11px] tracking-[0.18em]">
+                  {coverBusy ? 'UPLOADING…' : 'UPLOAD COVER IMAGE'}
+                </span>
+                <span className="text-[11px] text-muted">JPEG · PNG · WebP — up to 8 MB</span>
+              </button>
+            )}
+            {coverErr && <p className="text-red-400 text-xs">{coverErr}</p>}
+          </div>
+
+          {/* Slug + excerpt — roomy, side by side, no cramped box. */}
+          <div className="grid gap-8 sm:grid-cols-2 items-start">
+            <div className="space-y-2.5">
+              <Label htmlFor="slug">Slug</Label>
+              <Input
+                id="slug"
+                value={slug}
+                onChange={(e) => {
+                  slugTouched.current = true
+                  setSlug(e.target.value)
+                }}
+                onBlur={(e) => setSlug(slugify(e.target.value))}
+                placeholder="auto-from-title"
+              />
+            </div>
+            <div className="space-y-2.5">
+              <Label htmlFor="excerpt">Excerpt</Label>
+              <textarea
+                id="excerpt"
+                value={excerpt}
+                onChange={(e) => setExcerpt(e.target.value)}
+                rows={3}
+                placeholder="One or two sentences for the journal index."
+                className="w-full resize-y rounded-md bg-elevated px-3.5 py-2.5 text-sm leading-relaxed text-cream placeholder:text-muted outline-none focus:ring-2 focus:ring-amber/40"
+              />
             </div>
           </div>
         </div>

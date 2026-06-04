@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { MENU } from '../lib/menu'
 import { useCart, cartSummary, setQty, removeItem, clearCart } from '../lib/cart'
@@ -8,7 +8,14 @@ import { Input, Label } from '../components/ui/input'
 import { MenuAddControl } from '../components/menu-add-control'
 import { EASE_OUT, MaskedLines } from '../components/motion-primitives'
 
-export const Route = createFileRoute('/order')({ component: OrderPage })
+export const Route = createFileRoute('/order')({
+  validateSearch: (s: Record<string, unknown>) => ({
+    success: String(s.success ?? '') === '1',
+    canceled: String(s.canceled ?? '') === '1',
+    session_id: typeof s.session_id === 'string' ? s.session_id : undefined,
+  }),
+  component: OrderPage,
+})
 
 type OrderResult = { orderId: string; total: number; status: string }
 
@@ -16,12 +23,42 @@ function OrderPage() {
   const reduce = useReducedMotion()
   const cart = useCart()
   const { lines, count, total } = cartSummary(cart)
+  const { success, canceled, session_id } = Route.useSearch()
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState<OrderResult | null>(null)
+  const [confirming, setConfirming] = useState(success && Boolean(session_id))
+
+  // Returning from Stripe Checkout: confirm the session → mark paid + receipt.
+  useEffect(() => {
+    if (!success || !session_id || done) return
+    let cancelledFx = false
+    setConfirming(true)
+    fetch('/api/checkout/confirm', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ sessionId: session_id }),
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        if (cancelledFx) return
+        if (d.ok) {
+          clearCart()
+          setDone({ orderId: d.orderId, total: d.total, status: d.status })
+        } else {
+          setError(d.error || 'We could not confirm your payment.')
+        }
+      })
+      .catch(() => !cancelledFx && setError('We could not confirm your payment.'))
+      .finally(() => !cancelledFx && setConfirming(false))
+    return () => {
+      cancelledFx = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [success, session_id])
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -40,6 +77,12 @@ function OrderPage() {
       })
       const data = await res.json()
       if (!res.ok || !data.ok) throw new Error(data.error || 'Something went wrong.')
+      // Stripe → redirect to Checkout (cart is cleared on a successful return).
+      if (data.mode === 'stripe' && data.checkoutUrl) {
+        window.location.href = data.checkoutUrl
+        return
+      }
+      // Simulated → done immediately.
       clearCart()
       setDone({ orderId: data.orderId, total: data.total, status: data.status })
     } catch (err: any) {
@@ -62,8 +105,15 @@ function OrderPage() {
 
       {done ? (
         <Confirmation result={done} />
+      ) : confirming ? (
+        <ConfirmingView />
       ) : (
         <main className="px-6 md:px-14 py-12 md:py-16 grid lg:grid-cols-[1.4fr_1fr] gap-12 max-w-6xl">
+          {canceled && (
+            <div className="lg:col-span-2 -mb-4 border-l-2 border-amber bg-elevated/60 px-4 py-3 text-sm text-taupe">
+              Payment canceled — your order is still here whenever you’re ready.
+            </div>
+          )}
           <section>
             <motion.div
               className="font-mono text-xs tracking-[0.2em] text-amber"
@@ -210,17 +260,32 @@ function OrderPage() {
               </div>
               {error && <p className="text-red-400 text-sm">{error}</p>}
               <Button type="submit" size="lg" className="w-full" disabled={busy || !count}>
-                {busy ? 'Placing order…' : count ? `Pay ${total} Kč` : 'Add an item to continue'}
+                {busy ? 'Redirecting to checkout…' : count ? `Pay ${total} Kč` : 'Add an item to continue'}
               </Button>
               <p className="text-muted text-[11px] leading-relaxed">
-                Payment is simulated for this demo — no card is charged. A confirmation email is sent
-                to Mailpit.
+                You’ll complete payment securely on Stripe. Test mode — use card{' '}
+                <span className="text-taupe">4242 4242 4242 4242</span>, any future date &amp; CVC.
+                A confirmation email follows.
               </p>
             </form>
           </aside>
         </main>
       )}
     </div>
+  )
+}
+
+function ConfirmingView() {
+  return (
+    <main className="px-6 md:px-14 py-24 max-w-2xl">
+      <div className="font-mono text-xs tracking-[0.2em] text-amber">CONFIRMING PAYMENT</div>
+      <h1 className="font-display t-lg mt-3">
+        <MaskedLines lines={['ONE MOMENT…']} trigger="mount" />
+      </h1>
+      <p className="text-taupe mt-6 leading-relaxed max-w-md">
+        We’re confirming your payment with Stripe — this only takes a second.
+      </p>
+    </main>
   )
 }
 
@@ -260,9 +325,9 @@ function Confirmation({ result }: { result: OrderResult }) {
         <MaskedLines lines={['THANK YOU.']} trigger="mount" />
       </h1>
       <p className="text-taupe mt-6 leading-relaxed max-w-md">
-        Order <span className="text-cream">#{result.orderId.slice(0, 8)}</span> is in. We’ve sent a
-        confirmation email — open the Mailpit inbox to see it. Total charged:{' '}
-        <span className="text-amber">{result.total} Kč</span> (simulated).
+        Order <span className="text-cream">#{result.orderId.slice(0, 8)}</span> is paid. We’ve sent a
+        confirmation email. Total charged:{' '}
+        <span className="text-amber">{result.total} Kč</span>.
       </p>
       <div className="flex gap-4 mt-10">
         <Link to="/">

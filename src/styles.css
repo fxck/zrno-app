@@ -95,6 +95,22 @@ h3 {
   outline: none;
 }
 
+/* Browser autofill: keep the dark theme. Chrome forces a white/pale-blue
+   background on autofilled fields — the inset box-shadow paints over it with
+   our elevated surface, and the absurd transition delay defeats the flash. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--color-cream);
+  -webkit-box-shadow: 0 0 0 1000px var(--color-elevated) inset;
+  box-shadow: 0 0 0 1000px var(--color-elevated) inset;
+  caret-color: var(--color-cream);
+  transition: background-color 9999s ease-in-out 0s;
+}
+
 /* Honour the OS reduced-motion setting at the CSS layer too (covers the
    marquee + smooth-scroll, complementing useReducedMotion() in JS). */
 @media (prefers-reduced-motion: reduce) {

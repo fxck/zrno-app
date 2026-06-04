@@ -19,6 +19,8 @@ import { Route as ApiSubscribeRouteImport } from './routes/api/subscribe'
 import { Route as ApiOrdersRouteImport } from './routes/api/orders'
 import { Route as AdminDashboardRouteImport } from './routes/admin/dashboard'
 import { Route as AdminJournalIndexRouteImport } from './routes/admin/journal/index'
+import { Route as ApiStripeWebhookRouteImport } from './routes/api/stripe/webhook'
+import { Route as ApiCheckoutConfirmRouteImport } from './routes/api/checkout/confirm'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as AdminJournalNewRouteImport } from './routes/admin/journal/new'
 import { Route as AdminJournalIdEditRouteImport } from './routes/admin/journal/$id.edit'
@@ -73,6 +75,16 @@ const AdminJournalIndexRoute = AdminJournalIndexRouteImport.update({
   path: '/admin/journal/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiStripeWebhookRoute = ApiStripeWebhookRouteImport.update({
+  id: '/api/stripe/webhook',
+  path: '/api/stripe/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCheckoutConfirmRoute = ApiCheckoutConfirmRouteImport.update({
+  id: '/api/checkout/confirm',
+  path: '/api/checkout/confirm',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -101,6 +113,8 @@ export interface FileRoutesByFullPath {
   '/journal/': typeof JournalIndexRoute
   '/admin/journal/new': typeof AdminJournalNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/checkout/confirm': typeof ApiCheckoutConfirmRoute
+  '/api/stripe/webhook': typeof ApiStripeWebhookRoute
   '/admin/journal/': typeof AdminJournalIndexRoute
   '/admin/journal/$id/edit': typeof AdminJournalIdEditRoute
 }
@@ -116,6 +130,8 @@ export interface FileRoutesByTo {
   '/journal': typeof JournalIndexRoute
   '/admin/journal/new': typeof AdminJournalNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/checkout/confirm': typeof ApiCheckoutConfirmRoute
+  '/api/stripe/webhook': typeof ApiStripeWebhookRoute
   '/admin/journal': typeof AdminJournalIndexRoute
   '/admin/journal/$id/edit': typeof AdminJournalIdEditRoute
 }
@@ -132,6 +148,8 @@ export interface FileRoutesById {
   '/journal/': typeof JournalIndexRoute
   '/admin/journal/new': typeof AdminJournalNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/checkout/confirm': typeof ApiCheckoutConfirmRoute
+  '/api/stripe/webhook': typeof ApiStripeWebhookRoute
   '/admin/journal/': typeof AdminJournalIndexRoute
   '/admin/journal/$id/edit': typeof AdminJournalIdEditRoute
 }
@@ -149,6 +167,8 @@ export interface FileRouteTypes {
     | '/journal/'
     | '/admin/journal/new'
     | '/api/auth/$'
+    | '/api/checkout/confirm'
+    | '/api/stripe/webhook'
     | '/admin/journal/'
     | '/admin/journal/$id/edit'
   fileRoutesByTo: FileRoutesByTo
@@ -164,6 +184,8 @@ export interface FileRouteTypes {
     | '/journal'
     | '/admin/journal/new'
     | '/api/auth/$'
+    | '/api/checkout/confirm'
+    | '/api/stripe/webhook'
     | '/admin/journal'
     | '/admin/journal/$id/edit'
   id:
@@ -179,6 +201,8 @@ export interface FileRouteTypes {
     | '/journal/'
     | '/admin/journal/new'
     | '/api/auth/$'
+    | '/api/checkout/confirm'
+    | '/api/stripe/webhook'
     | '/admin/journal/'
     | '/admin/journal/$id/edit'
   fileRoutesById: FileRoutesById
@@ -195,6 +219,8 @@ export interface RootRouteChildren {
   JournalIndexRoute: typeof JournalIndexRoute
   AdminJournalNewRoute: typeof AdminJournalNewRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiCheckoutConfirmRoute: typeof ApiCheckoutConfirmRoute
+  ApiStripeWebhookRoute: typeof ApiStripeWebhookRoute
   AdminJournalIndexRoute: typeof AdminJournalIndexRoute
   AdminJournalIdEditRoute: typeof AdminJournalIdEditRoute
 }
@@ -271,6 +297,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminJournalIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/stripe/webhook': {
+      id: '/api/stripe/webhook'
+      path: '/api/stripe/webhook'
+      fullPath: '/api/stripe/webhook'
+      preLoaderRoute: typeof ApiStripeWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/checkout/confirm': {
+      id: '/api/checkout/confirm'
+      path: '/api/checkout/confirm'
+      fullPath: '/api/checkout/confirm'
+      preLoaderRoute: typeof ApiCheckoutConfirmRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -307,6 +347,8 @@ const rootRouteChildren: RootRouteChildren = {
   JournalIndexRoute: JournalIndexRoute,
   AdminJournalNewRoute: AdminJournalNewRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiCheckoutConfirmRoute: ApiCheckoutConfirmRoute,
+  ApiStripeWebhookRoute: ApiStripeWebhookRoute,
   AdminJournalIndexRoute: AdminJournalIndexRoute,
   AdminJournalIdEditRoute: AdminJournalIdEditRoute,
 }
