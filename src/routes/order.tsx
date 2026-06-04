@@ -359,6 +359,7 @@ function SummaryStep({
 }
 
 function Confirmation({ result, stripeOn }: { result: OrderResult; stripeOn: boolean }) {
+  const reduce = useReducedMotion()
   // Permanent, link-by-id order page. Encoded into a QR so the customer can
   // pull up their receipt anytime — and so staff can scan it to mark the
   // order delivered (the /o/$id page shows a "mark delivered" control to a
