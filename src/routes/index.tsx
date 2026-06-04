@@ -10,10 +10,10 @@ import {
 import { MENU } from '../lib/menu'
 import { useCart } from '../lib/cart'
 import { FloatingCart } from '../components/floating-cart'
+import { SiteHeader } from '../components/site-header'
 import { MenuAddControl } from '../components/menu-add-control'
 import {
   EASE_OUT,
-  MagneticButton,
   Marquee,
   MaskedLines,
   Reveal,
@@ -22,17 +22,9 @@ import {
   UnderlineLink,
   useParallaxY,
   usePointerFine,
-  useScrolled,
 } from '../components/motion-primitives'
 
 export const Route = createFileRoute('/')({ component: Home })
-
-const NAV: Array<[string, string]> = [
-  ['Menu', '#menu'],
-  ['Story', '#story'],
-  ['Roastery', '#story'],
-  ['Visit', '#visit'],
-]
 
 const DETAILS = [
   { h: 'Address', lines: ['Kubelíkova 22', '130 00 Praha 3', 'Žižkov'] },
@@ -55,7 +47,6 @@ function Home() {
 
   const reduce = useReducedMotion()
   const fine = usePointerFine()
-  const scrolled = useScrolled(28)
   const cart = useCart()
 
   // Hero parallax: photo drifts up + slowly scales as the hero scrolls away.
@@ -102,40 +93,7 @@ function Home() {
       <ScrollProgress />
       <FloatingCart />
 
-      {/* NAV — condenses + intensifies its backdrop on scroll */}
-      <motion.header
-        className="sticky top-0 z-50 flex items-center justify-between px-6 md:px-14 border-b hairline"
-        initial={false}
-        animate={{
-          paddingTop: scrolled ? 12 : 20,
-          paddingBottom: scrolled ? 12 : 20,
-          backgroundColor: scrolled ? 'rgba(11,9,8,0.92)' : 'rgba(11,9,8,0.80)',
-        }}
-        transition={{ duration: 0.55, ease: EASE_OUT }}
-        style={{
-          backdropFilter: scrolled ? 'blur(14px)' : 'blur(8px)',
-          WebkitBackdropFilter: scrolled ? 'blur(14px)' : 'blur(8px)',
-        }}
-      >
-        <a href="#top" className="font-display text-2xl tracking-wider">
-          ZRNO
-        </a>
-        <nav className="hidden md:flex gap-9 font-mono text-[11px] tracking-[0.18em] text-taupe">
-          {NAV.map(([label, href], i) => (
-            <UnderlineLink key={i} href={href}>
-              {label.toUpperCase()}
-            </UnderlineLink>
-          ))}
-        </nav>
-        <MagneticButton strength={0.28} radius={80}>
-          <Link
-            to="/order"
-            className="zrno-cta inline-block bg-amber text-espresso font-mono text-[11px] tracking-[0.18em] px-5 py-3 hover:bg-amberdeep transition-colors duration-300"
-          >
-            ORDER ONLINE
-          </Link>
-        </MagneticButton>
-      </motion.header>
+      <SiteHeader variant="home" />
 
       {/* HERO */}
       <section
@@ -229,7 +187,7 @@ function Home() {
       <Marquee items={MARQUEE} speed={42} />
 
       {/* MENU */}
-      <section id="menu" className="bg-surface px-6 md:px-14 py-24 md:py-32">
+      <section id="menu" className="scroll-mt-24 bg-surface px-6 md:px-14 py-24 md:py-32">
         <Reveal as="div" className="flex items-end justify-between flex-wrap gap-6" stagger>
           <div>
             <div className="font-mono text-xs tracking-[0.2em] text-amber">
@@ -275,7 +233,7 @@ function Home() {
       </section>
 
       {/* STORY */}
-      <section id="story" className="px-6 md:px-14 py-28 md:py-40">
+      <section id="story" className="scroll-mt-24 px-6 md:px-14 py-28 md:py-40">
         <div className="grid md:grid-cols-[1fr_2fr_1fr] gap-10 md:gap-12 items-start">
           <Reveal as="div" className="font-mono text-xs leading-relaxed" delay={0.05}>
             <div className="text-amber tracking-[0.15em]">(01) — THE ROASTERY</div>
@@ -312,7 +270,7 @@ function Home() {
           </Reveal>
         </div>
 
-        <div className="mt-16 md:mt-24 md:pl-[18%]">
+        <div id="roastery" className="scroll-mt-24 mt-16 md:mt-24 md:pl-[18%]">
           <Reveal as="div" y={36} className="max-w-2xl">
             <div
               ref={roastRef}
@@ -344,7 +302,7 @@ function Home() {
       </section>
 
       {/* VISIT */}
-      <section id="visit" className="bg-surface grid md:grid-cols-2">
+      <section id="visit" className="scroll-mt-24 bg-surface grid md:grid-cols-2">
         <div
           ref={barRef}
           className="relative min-h-[320px] md:min-h-[560px] overflow-hidden flex items-end p-8"

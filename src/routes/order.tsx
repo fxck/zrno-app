@@ -6,6 +6,7 @@ import { useCart, cartSummary, setQty, removeItem, clearCart } from '../lib/cart
 import { Button } from '../components/ui/button'
 import { Input, Label } from '../components/ui/input'
 import { MenuAddControl } from '../components/menu-add-control'
+import { SiteHeader } from '../components/site-header'
 import { EASE_OUT, MaskedLines } from '../components/motion-primitives'
 
 export const Route = createFileRoute('/order')({
@@ -122,14 +123,7 @@ function OrderPage() {
 
   return (
     <div className="min-h-screen bg-espresso text-cream font-body">
-      <header className="flex items-center justify-between px-6 md:px-14 py-5 border-b border-muted/15">
-        <Link to="/" className="font-display text-2xl tracking-wider">
-          ZRNO
-        </Link>
-        <Link to="/" className="font-mono text-[11px] tracking-[0.18em] text-taupe hover:text-cream transition-colors">
-          ← BACK TO SITE
-        </Link>
-      </header>
+      <SiteHeader variant="page" back />
 
       {done ? (
         <Confirmation result={done} />

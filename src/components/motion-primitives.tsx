@@ -415,6 +415,53 @@ export function useScrolled(threshold = 24): boolean {
 }
 
 /* ------------------------------------------------------------------ *
+ * useActiveSection — scrollspy. Returns the id of the section currently
+ * crossing a thin band in the vertical middle of the viewport.
+ *
+ * The -45%/-45% rootMargin collapses the observer's root to a ~10vh
+ * strip at screen centre, so exactly the section under that strip reads
+ * as active — the same heuristic the eye uses ("what am I looking at").
+ * Returns '' when no tracked section is centred (e.g. up in the hero),
+ * so the nav shows nothing active rather than a stale highlight.
+ * SSR-safe: starts '', resolves in an effect.
+ * ------------------------------------------------------------------ */
+export function useActiveSection(ids: string[]): string {
+  const [active, setActive] = useState('')
+  const key = ids.join(',')
+  useEffect(() => {
+    if (typeof IntersectionObserver === 'undefined' || !ids.length) return
+    const els = ids
+      .map((id) => document.getElementById(id))
+      .filter((el): el is HTMLElement => !!el)
+    if (!els.length) return
+
+    const ratios = new Map<string, number>()
+    const obs = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) ratios.set(e.target.id, e.intersectionRatio)
+          else ratios.delete(e.target.id)
+        }
+        let best = ''
+        let bestRatio = -1
+        for (const [id, r] of ratios) {
+          if (r > bestRatio) {
+            best = id
+            bestRatio = r
+          }
+        }
+        setActive(best)
+      },
+      { rootMargin: '-45% 0px -45% 0px', threshold: [0, 0.5, 1] },
+    )
+    els.forEach((el) => obs.observe(el))
+    return () => obs.disconnect()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key])
+  return active
+}
+
+/* ------------------------------------------------------------------ *
  * UnderlineLink — an <a> whose amber underline wipes in from the left
  * on hover (pointer-fine only; degrades to a colour change otherwise).
  * ------------------------------------------------------------------ */
