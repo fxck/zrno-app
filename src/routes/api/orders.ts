@@ -4,6 +4,7 @@ import { getPool } from '../../lib/db'
 import { MENU_BY_ID } from '../../lib/menu'
 import { processPayment, stripeEnabled, createCheckoutSession } from '../../lib/payment'
 import { sendOrderConfirmation } from '../../lib/email'
+import { indexOrder } from '../../lib/server/search'
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
 
@@ -41,6 +42,7 @@ export const Route = createFileRoute('/api/orders')({
           [name, email, JSON.stringify(items), total],
         )
         const orderId = ins.rows[0].id as string
+        void indexOrder(orderId) // best-effort: make it searchable immediately
 
         // Real Stripe: create a Checkout Session and hand the URL to the client
         // to redirect. Fulfillment happens on return (confirm) + webhook.
@@ -69,6 +71,7 @@ export const Route = createFileRoute('/api/orders')({
           'UPDATE orders SET status=$1, payment_provider=$2, payment_reference=$3 WHERE id=$4',
           [pay.status, pay.provider, pay.reference, orderId],
         )
+        void indexOrder(orderId) // re-sync the now-settled status
         if (pay.status === 'paid') {
           await sendOrderConfirmation(email, { orderId, total, items })
         }

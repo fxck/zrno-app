@@ -3,6 +3,7 @@ import { ensureDb } from '../../../lib/migrate'
 import { getPool } from '../../../lib/db'
 import { stripeEnabled, retrieveCheckoutSession } from '../../../lib/payment'
 import { sendOrderConfirmation } from '../../../lib/email'
+import { indexOrder } from '../../../lib/server/search'
 
 // Called by the order page when the customer returns from Stripe Checkout.
 // Retrieves the session, and if it's paid, marks the order paid + sends the
@@ -58,6 +59,7 @@ export const Route = createFileRoute('/api/checkout/confirm')({
           )
           if (upd.rowCount) {
             const items = typeof row.items === 'string' ? JSON.parse(row.items) : row.items
+            void indexOrder(orderId) // reflect the paid status in search
             await sendOrderConfirmation(row.email, { orderId, total: row.total, items })
           }
           return Response.json({ ok: true, orderId, total: row.total, status: 'paid' })

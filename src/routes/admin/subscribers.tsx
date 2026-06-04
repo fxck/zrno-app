@@ -2,8 +2,14 @@ import { createFileRoute, redirect } from '@tanstack/react-router'
 import { getDashboard } from '../../lib/server/admin'
 import { AdminShell } from '../../components/admin-shell'
 import { Card } from '../../components/ui/card'
-import { Table, THead, TBody, TR, TH, TD } from '../../components/ui/table'
+import { Table, THead, TBody, TR, TD } from '../../components/ui/table'
 import { fmtDateTime } from '../../components/admin-bits'
+import {
+  useTableControls,
+  TableToolbar,
+  SortTH,
+} from '../../components/table-controls'
+import type { Subscriber } from '../../lib/server/admin'
 
 export const Route = createFileRoute('/admin/subscribers')({
   loader: async () => {
@@ -16,6 +22,15 @@ export const Route = createFileRoute('/admin/subscribers')({
 
 function AdminSubscribers() {
   const data = Route.useLoaderData()
+  const subscribers = data.authed ? data.subscribers : []
+  const controls = useTableControls<Subscriber>(subscribers, {
+    searchText: (s) => s.email,
+    sorts: [
+      { key: 'created_at', get: (s) => Date.parse(s.created_at) },
+      { key: 'email', get: (s) => s.email },
+    ],
+    initialSort: { key: 'created_at', dir: 'desc' },
+  })
   if (!data.authed) return null
 
   return (
@@ -27,19 +42,29 @@ function AdminSubscribers() {
         </span>
       </div>
 
+      {data.subscribers.length > 0 && (
+        <TableToolbar controls={controls} placeholder="Search subscribers by email…" />
+      )}
+
       <Card className="p-2">
         {data.subscribers.length === 0 ? (
           <p className="text-taupe text-sm p-6">No subscribers yet.</p>
+        ) : controls.rows.length === 0 ? (
+          <p className="text-taupe text-sm p-6">No subscribers match your search.</p>
         ) : (
           <Table>
             <THead>
               <TR>
-                <TH>Email</TH>
-                <TH className="text-right">Joined</TH>
+                <SortTH controls={controls} sortKey="email">
+                  Email
+                </SortTH>
+                <SortTH controls={controls} sortKey="created_at" className="text-right">
+                  Joined
+                </SortTH>
               </TR>
             </THead>
             <TBody>
-              {data.subscribers.map((s) => (
+              {controls.rows.map((s) => (
                 <TR key={s.id}>
                   <TD>{s.email}</TD>
                   <TD className="text-right text-xs text-muted whitespace-nowrap">

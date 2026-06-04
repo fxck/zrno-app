@@ -3,6 +3,7 @@ import { getRequest } from '@tanstack/react-start/server'
 import { auth } from '../auth'
 import { getPool } from '../db'
 import { ensureDb } from '../migrate'
+import { indexOrder } from './search'
 
 export type PublicOrder = {
   id: string
@@ -74,6 +75,7 @@ export const markOrderDelivered = createServerFn({ method: 'POST' })
       [data.id],
     )
     if (!res.rowCount) return { ok: false as const, authed: true as const }
+    void indexOrder(data.id) // reflect delivered state in search
     return {
       ok: true as const,
       authed: true as const,

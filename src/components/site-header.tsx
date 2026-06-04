@@ -66,11 +66,11 @@ export function SiteHeader({
       {/* Logo — just the angled bean "O" (the brand mark). */}
       {isHome ? (
         <a href="#top" aria-label="ZRNO home" className="shrink-0">
-          <BeanO className="text-[1.7rem] text-cream" />
+          <BeanO className="text-[2.35rem] leading-none text-cream" />
         </a>
       ) : (
         <Link to="/" aria-label="ZRNO home" className="shrink-0">
-          <BeanO className="text-[1.7rem] text-cream" />
+          <BeanO className="text-[2.35rem] leading-none text-cream" />
         </Link>
       )}
 

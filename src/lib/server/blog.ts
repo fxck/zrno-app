@@ -3,6 +3,7 @@ import { getRequest } from '@tanstack/react-start/server'
 import { auth } from '../auth'
 import { getPool } from '../db'
 import { ensureDb } from '../migrate'
+import { indexPost, removeFromIndex } from './search'
 
 // IMPORTANT: this module is imported by route loaders and runs on the server.
 // It MUST NOT import any Tiptap / ProseMirror code (those touch the DOM).
@@ -180,6 +181,7 @@ export const savePost = createServerFn({ method: 'POST' })
         [title, slug, excerpt, contentHtml, cover, status, publishedAtExpr, data.id],
       )
       const r = upd.rows[0]
+      void indexPost(r.id) // best-effort: keep search in sync
       return { authed: true as const, ok: true as const, id: r.id, slug: r.slug, status: r.status }
     }
 
@@ -193,6 +195,7 @@ export const savePost = createServerFn({ method: 'POST' })
       [title, slug, excerpt, contentHtml, cover, status, status === 'published' ? new Date() : null],
     )
     const r = ins.rows[0]
+    void indexPost(r.id) // best-effort: keep search in sync
     return { authed: true as const, ok: true as const, id: r.id, slug: r.slug, status: r.status }
   })
 
@@ -215,6 +218,7 @@ export const setPostStatus = createServerFn({ method: 'POST' })
        WHERE id=$3`,
       [data.status, publish, data.id],
     )
+    void indexPost(data.id) // reflect new status in search
     return { authed: true as const, ok: true as const }
   })
 
@@ -225,5 +229,6 @@ export const deletePost = createServerFn({ method: 'POST' })
     const session = await requireSession()
     if (!session) return { authed: false as const }
     await getPool().query('DELETE FROM posts WHERE id = $1', [data.id])
+    void removeFromIndex('posts', data.id) // drop it from search too
     return { authed: true as const, ok: true as const }
   })

@@ -7,6 +7,12 @@ import { Card } from '../../components/ui/card'
 import { Table, THead, TBody, TR, TH, TD } from '../../components/ui/table'
 import { Button } from '../../components/ui/button'
 import { OrderStatus, fmtDateTime } from '../../components/admin-bits'
+import {
+  useTableControls,
+  TableToolbar,
+  SortTH,
+} from '../../components/table-controls'
+import type { Order } from '../../lib/server/admin'
 
 export const Route = createFileRoute('/admin/orders')({
   loader: async () => {
@@ -21,6 +27,41 @@ function AdminOrders() {
   const data = Route.useLoaderData()
   const router = useRouter()
   const [busyId, setBusyId] = useState<string | null>(null)
+  const orders = data.authed ? data.orders : []
+  const controls = useTableControls<Order>(orders, {
+    searchText: (o) =>
+      `#${o.id.slice(0, 8)} ${o.customer_name} ${o.email} ${o.items
+        .map((i) => i.name)
+        .join(' ')} ${o.status}`,
+    sorts: [
+      { key: 'created_at', get: (o) => Date.parse(o.created_at) },
+      { key: 'customer_name', get: (o) => o.customer_name },
+      { key: 'total', get: (o) => o.total },
+      { key: 'status', get: (o) => o.status },
+    ],
+    filters: [
+      {
+        key: 'status',
+        label: 'Status',
+        options: [
+          { value: 'paid', label: 'paid' },
+          { value: 'pending', label: 'pending' },
+          { value: 'failed', label: 'failed' },
+        ],
+        test: (o, v) => o.status === v,
+      },
+      {
+        key: 'delivery',
+        label: 'Delivery',
+        options: [
+          { value: 'delivered', label: 'delivered' },
+          { value: 'open', label: 'open' },
+        ],
+        test: (o, v) => (v === 'delivered' ? !!o.delivered_at : !o.delivered_at),
+      },
+    ],
+    initialSort: { key: 'created_at', dir: 'desc' },
+  })
   if (!data.authed) return null
 
   async function deliver(id: string) {
@@ -39,24 +80,38 @@ function AdminOrders() {
         </span>
       </div>
 
+      {data.orders.length > 0 && (
+        <TableToolbar controls={controls} placeholder="Search orders — #id, name, email, item…" />
+      )}
+
       <Card className="p-2">
         {data.orders.length === 0 ? (
           <p className="text-taupe text-sm p-6">No orders yet.</p>
+        ) : controls.rows.length === 0 ? (
+          <p className="text-taupe text-sm p-6">No orders match these filters.</p>
         ) : (
           <Table>
             <THead>
               <TR>
                 <TH>Order</TH>
-                <TH>Customer</TH>
+                <SortTH controls={controls} sortKey="customer_name">
+                  Customer
+                </SortTH>
                 <TH>Items</TH>
-                <TH>Total</TH>
-                <TH>Status</TH>
-                <TH>Placed</TH>
+                <SortTH controls={controls} sortKey="total">
+                  Total
+                </SortTH>
+                <SortTH controls={controls} sortKey="status">
+                  Status
+                </SortTH>
+                <SortTH controls={controls} sortKey="created_at">
+                  Placed
+                </SortTH>
                 <TH className="text-right">Action</TH>
               </TR>
             </THead>
             <TBody>
-              {data.orders.map((o) => (
+              {controls.rows.map((o) => (
                 <TR key={o.id}>
                   <TD className="font-mono text-xs">
                     <Link

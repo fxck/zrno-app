@@ -2,6 +2,7 @@ import { Link, useRouter, useRouterState } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
 import { authClient } from '../lib/auth-client'
 import { BeanO } from './bean-mark'
+import { CommandPalette } from './command-palette'
 import { Button } from './ui/button'
 
 /* ------------------------------------------------------------------ *
@@ -45,7 +46,7 @@ export function AdminShell({
         <div className="flex items-center justify-between gap-4 px-6 md:px-12 py-4">
           <div className="flex items-baseline gap-4">
             <Link to="/" aria-label="ZRNO home">
-              <BeanO className="text-2xl text-cream" />
+              <BeanO className="text-[2rem] leading-none text-cream" />
             </Link>
             <span className="font-mono text-[11px] tracking-[0.2em] text-taupe">
               BACK OFFICE
@@ -54,6 +55,7 @@ export function AdminShell({
           {/* Account cluster — the user + their account-level controls
               (security) + sign-out, kept distinct from the shop nav below. */}
           <div className="flex items-center gap-4">
+            <CommandPalette />
             {actions}
             <div className="flex items-center gap-3 border-l border-muted/15 pl-4">
               {email && (

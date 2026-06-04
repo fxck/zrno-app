@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { ensureDb } from '../../lib/migrate'
 import { getPool } from '../../lib/db'
 import { sendWelcome } from '../../lib/email'
+import { indexSubscriberByEmail } from '../../lib/server/search'
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
 
@@ -24,6 +25,7 @@ export const Route = createFileRoute('/api/subscribe')({
           'INSERT INTO subscribers(email) VALUES($1) ON CONFLICT (email) DO NOTHING',
           [email],
         )
+        void indexSubscriberByEmail(email) // best-effort: make searchable
         await sendWelcome(email)
         return Response.json({ ok: true })
       },

@@ -3,6 +3,7 @@ import { ensureDb } from '../../../lib/migrate'
 import { getPool } from '../../../lib/db'
 import { stripeEnabled, constructWebhookEvent } from '../../../lib/payment'
 import { sendOrderConfirmation } from '../../../lib/email'
+import { indexOrder } from '../../../lib/server/search'
 
 // Stripe webhook — production-grade fulfillment, resilient to the customer
 // closing the tab before the success redirect. Requires STRIPE_WEBHOOK_SECRET
@@ -44,6 +45,7 @@ export const Route = createFileRoute('/api/stripe/webhook')({
             if (upd.rowCount) {
               const row = upd.rows[0] as { email: string; items: any; total: number }
               const items = typeof row.items === 'string' ? JSON.parse(row.items) : row.items
+              void indexOrder(orderId) // reflect the paid status in search
               await sendOrderConfirmation(row.email, { orderId, total: row.total, items })
             }
           }
