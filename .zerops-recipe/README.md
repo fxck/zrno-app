@@ -9,13 +9,17 @@ the sibling `0 — Development/`, `1 — Stage/` and `2 — Production/` folders
 ZRNO
 <!-- #ZEROPS_EXTRACT_END:name# -->
 
+<!-- #ZEROPS_EXTRACT_START:shape# -->
+app
+<!-- #ZEROPS_EXTRACT_END:shape# -->
+
 <!-- #ZEROPS_EXTRACT_START:intro# -->
 A complete, production-shaped coffee-shop web app — storefront, journal CMS and
 admin back office — that you can fork into your own café, blog or storefront.
 <!-- #ZEROPS_EXTRACT_END:intro# -->
 
 <!-- #ZEROPS_EXTRACT_START:cover# -->
-![ZRNO storefront](https://raw.githubusercontent.com/fxck/zrno-shop/main/.zerops-recipe/cover.png)
+![ZRNO storefront](https://raw.githubusercontent.com/fxck/zrno-app/main/.zerops-recipe/cover.png)
 <!-- #ZEROPS_EXTRACT_END:cover# -->
 
 <!-- #ZEROPS_EXTRACT_START:description# -->
@@ -62,22 +66,14 @@ make it your own.
 <!-- #ZEROPS_EXTRACT_END:features# -->
 
 <!-- #ZEROPS_EXTRACT_START:takeover-guide# -->
-### Make it yours
+These are ZRNO-specific things to do once your environment is up — the generic
+fork → CI/CD → deploy steps are covered above.
 
-ZRNO is meant to be adopted as a template. To run your own copy:
-
-1. **Fork it to your account.** Fork the repo on GitHub (or push the clone above
-   to a new repository of your own).
-2. **Point the import at your fork.** In the env folder you deploy, edit each
-   `buildFromGit:` URL to your repo (skip this if you deploy the canonical repo
-   as-is).
-3. **Deploy on Zerops.** Add a new project → *Import project* and paste the
-   chosen environment's `import.yaml` (start with **Development** or **Stage**).
-4. **Sign in to the back office.** `ADMIN_PASSWORD` is generated at import — read
-   it from the project's env variables in the GUI, then open `/admin` and log in
-   as `ADMIN_EMAIL`.
-5. **Lock down your account.** At `/admin/security` change the admin email and
-   password and register a **passkey** for passwordless sign-in.
+- **Sign in to the back office.** `ADMIN_PASSWORD` is generated at import — read
+  it from the project's env variables in the GUI, then open `/admin` and log in
+  as `ADMIN_EMAIL`.
+- **Lock down your account.** At `/admin/security` change the admin email and
+  password and register a **passkey** for passwordless sign-in.
 
 > [!NOTE]
 > Without `STRIPE_SECRET_KEY` the checkout runs in **simulated mode** — orders
@@ -89,7 +85,7 @@ ZRNO is meant to be adopted as a template. To run your own copy:
 > placeholder value — an invalid key makes real checkout fail. Leave it unset to
 > stay in simulated mode, or set a valid key plus `STRIPE_PUBLISHABLE_KEY`.
 
-### Secrets
+**Secrets**
 
 | Variable | State | What to do |
 |---|---|---|
