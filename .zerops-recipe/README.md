@@ -10,18 +10,29 @@ ZRNO
 <!-- #ZEROPS_EXTRACT_END:name# -->
 
 <!-- #ZEROPS_EXTRACT_START:intro# -->
-ZRNO is a complete, production-shaped coffee-shop web app. Customers browse the
-menu, fill a cart and check out, read a publishing-grade journal and subscribe
-to updates; behind it sits a full admin back office for managing orders,
-subscribers, passkey-secured accounts and a rich journal editor with image
-uploads. It's built on TanStack Start (React 19, server-side rendered) and wires
-itself to PostgreSQL, S3-compatible object storage, Meilisearch and SMTP email
-out of the box — a real app you can fork into your own café, blog or storefront.
+A complete, production-shaped coffee-shop web app — storefront, journal CMS and
+admin back office — that you can fork into your own café, blog or storefront.
 <!-- #ZEROPS_EXTRACT_END:intro# -->
 
 <!-- #ZEROPS_EXTRACT_START:cover# -->
-![ZRNO storefront](https://raw.githubusercontent.com/fxck/zrno-coffee/main/.zerops-recipe/cover.png)
+![ZRNO storefront](https://raw.githubusercontent.com/fxck/zrno-cafe/main/.zerops-recipe/cover.png)
 <!-- #ZEROPS_EXTRACT_END:cover# -->
+
+<!-- #ZEROPS_EXTRACT_START:description# -->
+ZRNO ships three environments. The **Development + Stage** pair gives you an
+agent-owned dev workspace next to a real production-build stage for verifying
+what ships; **Production** runs the hardened build on its own. Pick one from the
+selector above — start in Development to build, promote to Production when ready.
+
+Under the hood it's a single TanStack Start app (React 19, server-side rendered)
+backed by PostgreSQL, S3-compatible object storage, Meilisearch and SMTP email —
+all wired together by hostname at import, nothing to configure by hand. Customers
+browse the menu, fill a cart and check out with email confirmations, read a
+publishing-grade journal and subscribe to updates; behind it sits a full admin
+back office for orders, subscribers, passkey-secured accounts and a rich journal
+editor with image uploads. It's a real app, not a skeleton — fork it and make it
+your own.
+<!-- #ZEROPS_EXTRACT_END:description# -->
 
 <!-- #ZEROPS_EXTRACT_START:features# -->
 - **Storefront with cart & checkout** — browse the menu, build an order and check
