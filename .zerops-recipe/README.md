@@ -20,7 +20,7 @@ out of the box — a real app you can fork into your own café, blog or storefro
 <!-- #ZEROPS_EXTRACT_END:intro# -->
 
 <!-- #ZEROPS_EXTRACT_START:cover# -->
-![ZRNO storefront](https://raw.githubusercontent.com/fxck/zrno-coffee/main/public/hero.jpg)
+![ZRNO storefront](https://raw.githubusercontent.com/fxck/zrno-coffee/main/.zerops-recipe/cover.png)
 <!-- #ZEROPS_EXTRACT_END:cover# -->
 
 <!-- #ZEROPS_EXTRACT_START:features# -->
