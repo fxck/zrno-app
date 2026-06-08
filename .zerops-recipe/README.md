@@ -23,8 +23,17 @@ admin back office — that you can fork into your own café, blog or storefront.
 <!-- #ZEROPS_EXTRACT_END:cover# -->
 
 <!-- #ZEROPS_EXTRACT_START:description# -->
-ZRNO ships as **three project environments** — each a complete, self-contained
-import you pick from the selector above:
+ZRNO is a complete, production-shaped **coffee-shop app** — not a skeleton.
+Customers browse the menu, fill a cart and check out with email confirmations,
+read a publishing-grade journal and subscribe; behind it sits a full admin back
+office for orders, subscribers, passkey-secured accounts and a rich journal
+editor with image uploads. It's built on **TanStack Start** (React 19,
+server-side rendered) and backed by **PostgreSQL**, **S3-compatible object
+storage**, **Meilisearch** and **SMTP email** — all wired by hostname at import,
+nothing to configure by hand. Fork it and make it your own.
+
+It ships as **three project environments**, each a complete, self-contained
+import you pick from the deploy selector:
 
 - **Development** — a dev + stage pair: an agent-owned `appdev` workspace you can
   mount and hack on live, beside an `appstage` running the real production build
@@ -34,15 +43,6 @@ import you pick from the selector above:
 - **Production** — the hardened topology: highly-available 3-node PostgreSQL with
   auto-failover and the app scaled across 2–4 dedicated-CPU containers behind
   zero-downtime rolling deploys. Serious plan.
-
-Every environment runs the same **TanStack Start** app (React 19, server-side
-rendered) backed by **PostgreSQL**, **S3-compatible object storage**,
-**Meilisearch** and **SMTP email** — all wired by hostname at import, nothing to
-configure by hand. Customers browse the menu, fill a cart and check out with
-email confirmations, read a publishing-grade journal and subscribe; behind it
-sits a full admin back office for orders, subscribers, passkey-secured accounts
-and a rich journal editor with uploads. A real app, not a skeleton — fork it and
-make it your own.
 <!-- #ZEROPS_EXTRACT_END:description# -->
 
 <!-- #ZEROPS_EXTRACT_START:features# -->
