@@ -66,8 +66,7 @@ make it your own.
 <!-- #ZEROPS_EXTRACT_END:features# -->
 
 <!-- #ZEROPS_EXTRACT_START:takeover-guide# -->
-These are ZRNO-specific things to do once your environment is up — the generic
-fork → CI/CD → deploy steps are covered above.
+ZRNO-specific things to do as soon as your environment is up:
 
 - **Sign in to the back office.** `ADMIN_PASSWORD` is generated at import — read
   it from the project's env variables in the GUI, then open `/admin` and log in
